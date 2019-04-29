@@ -8,8 +8,8 @@ import (
 	//"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
 )
 
 const GroupName = "acme.mycompany.com"
@@ -88,7 +88,7 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	fmt.Printf("Decoded configuration %v", cfg)
 
 	// TODO: add code that sets a record in the DNS provider's console
-	panic("implement me")
+	return nil
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
@@ -99,7 +99,7 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // concurrently.
 func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	// TODO: add code that deletes a record from the DNS provider's console
-	panic("implement me")
+	return nil
 }
 
 // Initialize will be called when the webhook first starts.
@@ -123,8 +123,7 @@ func (c *customDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stop
 	//c.client = cl
 
 	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLE
-
-	panic("implement me")
+	return nil
 }
 
 // loadConfig is a small helper function that decodes JSON configuration into

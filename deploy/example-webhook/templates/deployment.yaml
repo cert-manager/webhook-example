@@ -19,22 +19,28 @@ spec:
         app: {{ include "example-webhook.name" . }}
         release: {{ .Release.Name }}
     spec:
+      serviceAccountName: {{ include "example-webhook.fullname" . }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: GROUP_NAME
+              value: {{ .Values.groupName | quote }}
           ports:
-            - name: http
-              containerPort: 80
+            - name: https
+              containerPort: 443
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /
-              port: http
+              scheme: HTTPS
+              path: /healthz
+              port: https
           readinessProbe:
             httpGet:
-              path: /
-              port: http
+              scheme: HTTPS
+              path: /healthz
+              port: https
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- with .Values.nodeSelector }}

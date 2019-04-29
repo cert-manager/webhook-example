@@ -8,6 +8,10 @@
 # here is recommended.
 groupName: acme.mycompany.com
 
+certManager:
+  namespace: cert-manager
+  serviceAccountName: cert-manager
+
 image:
   repository: mycompany/webhook-image
   tag: stable
@@ -18,7 +22,7 @@ fullnameOverride: ""
 
 service:
   type: ClusterIP
-  port: 80
+  port: 443
 
 ingress:
   enabled: false
