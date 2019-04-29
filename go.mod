@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
-	github.com/jetstack/cert-manager v0.7.1-0.20190418141904-49f91f9fa4d4
+	github.com/jetstack/cert-manager v0.7.1-0.20190429172244-546d3f1d7627
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	k8s.io/apiextensions-apiserver v0.0.0-20190413053546-d0acb7a76918
