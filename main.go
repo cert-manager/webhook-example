@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	//"k8s.io/client-go/kubernetes"
@@ -12,9 +13,13 @@ import (
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
 )
 
-const GroupName = "acme.mycompany.com"
+var GroupName = os.Getenv("GROUP_NAME")
 
 func main() {
+	if GroupName == "" {
+		panic("GROUP_NAME must be specified")
+	}
+
 	// This will register our custom DNS provider with the webhook serving
 	// library, making it available as an API under the provided GroupName.
 	// You can register multiple DNS provider implementations with a single

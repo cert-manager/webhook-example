@@ -14,7 +14,7 @@ certManager:
 
 image:
   repository: mycompany/webhook-image
-  tag: stable
+  tag: latest
   pullPolicy: IfNotPresent
 
 nameOverride: ""
@@ -23,19 +23,6 @@ fullnameOverride: ""
 service:
   type: ClusterIP
   port: 443
-
-ingress:
-  enabled: false
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  path: /
-  hosts:
-    - chart-example.local
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
