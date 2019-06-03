@@ -47,7 +47,7 @@ An example Go test file has been provided in [main_test.go]().
 You can run the test suite with:
 
 ```bash
-$ TEST_ZONE_NAME=example.com go test .
+$ TEST_ZONE_NAME=snowdrop.me. go test .
 ```
 
 The example file has a number of areas you must fill in and replace with your
