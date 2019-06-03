@@ -1,16 +1,18 @@
 package main
 
 import (
-	"os"
-	"testing"
+	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	logf "github.com/jetstack/cert-manager/pkg/logs"
 	"github.com/jetstack/cert-manager/test/acme/dns"
 	testserver "github.com/jetstack/cert-manager/test/acme/dns/server"
+	"os"
+	"testing"
 )
 
 var (
 	zone = os.Getenv("TEST_ZONE_NAME")
 	kubeBuilderBinPath = "./_out/kubebuilder/bin"
+	rfc2136TestFqdn        = "_acme-challenge.123456789.www.example.com."
 	rfc2136TestZone        = "example.com."
 	rfc2136TestTsigKeyName = "example.com."
 	rfc2136TestTsigSecret  = "IwBTJx9wrDp4Y1RyC3H0gA=="
@@ -34,9 +36,15 @@ func TestRunsSuite(t *testing.T) {
 	}
 	defer server.Shutdown()
 
+	var validConfig = cmapi.ACMEIssuerDNS01ProviderRFC2136{
+		Nameserver: server.ListenAddr(),
+	}
+
 	fixture := dns.NewFixture(&customDNSProviderSolver{},
 	    dns.SetBinariesPath(kubeBuilderBinPath),
 		dns.SetResolvedZone(zone),
+		dns.SetResolvedFQDN(rfc2136TestFqdn),
+		dns.SetConfig(validConfig),
 		dns.SetDNSServer(server.ListenAddr()),
 		dns.SetAllowAmbientCredentials(false),
 		dns.SetManifestPath("testdata/my-custom-solver"),
