@@ -12,7 +12,7 @@ A [cert-manager][2] ACME DNS01 solver webhook for [DNSimple][1].
 
 Take note of your DNSimple API token and account ID from the account settings in the automation tab. Run the following commands replacing the account ID, API token placeholders and email address:
 
-```
+```bash
 $ helm install cert-manager-webhook-dnsimple \
     --namespace cert-manager \
     --dry-run \
@@ -24,25 +24,43 @@ $ helm install cert-manager-webhook-dnsimple \
     ./deploy/dnsimple
 ```
 
+Afterwards issue a certificate:
+
+```bash
+$ cat << EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1alpha3
+kind: Certificate
+metadata:
+  name: dnsimple-test
+  namespace: default
+spec:
+  dnsNames:
+    - test.example.com
+  issuerRef:
+    name: cert-manager-webhook-dnsimple-production
+    kind: ClusterIssuer
+  secretName: dnsimple-test-tls
+EOF
+```
+
 ## Options
 
 The Helm chart accepts the following values:
 
 | name                               | required | description                                     | default value                           |
-|----------------------------------- | -------- | ----------------------------------------------- |---------------------------------------- |
-| `dnsimple.account`                 |     ✔️    | DNSimple Account ID                             | _empty_                                 |
-| `dnsimple.token`                   |     ✔️    | DNSimple API Token                              | _empty_                                 |
+| ---------------------------------- | -------- | ----------------------------------------------- | --------------------------------------- |
+| `dnsimple.account`                 | ✔️       | DNSimple Account ID                             | _empty_                                 |
+| `dnsimple.token`                   | ✔️       | DNSimple API Token                              | _empty_                                 |
 | `clusterIssuer.email`              |          | LetsEncrypt Admin Email                         | `name@example.com`                      |
 | `clusterIssuer.production.enabled` |          | Create a production `ClusterIssuer`             | `false`                                 |
 | `clusterIssuer.staging.enabled`    |          | Create a staging `ClusterIssuer`                | `false`                                 |
-| `image.repository`                 |     ✔️    | Docker image for the webhook solver             | `neoskop/cert-manager-webhook-dnsimple` |
-| `image.tag`                        |     ✔️    | Docker image tag of the solver                  | `latest`                                |
-| `image.pullPolicy`                 |     ✔️    | Image pull policy of the solver                 | `IfNotPresent`                          |
+| `image.repository`                 | ✔️       | Docker image for the webhook solver             | `neoskop/cert-manager-webhook-dnsimple` |
+| `image.tag`                        | ✔️       | Docker image tag of the solver                  | `latest`                                |
+| `image.pullPolicy`                 | ✔️       | Image pull policy of the solver                 | `IfNotPresent`                          |
 | `logLevel`                         |          | Set the verbosity of the solver                 | _empty_                                 |
-| `groupName`                        |     ✔️    | Identifies the company that created the webhook | `acme.neoskop.de`                       |
-| `certManager.namespace`            |     ✔️    | The namespace cert-manager was installed to     | `cert-manager`                          |
-| `certManager.serviceAccountName`   |     ✔️    | The service account cert-manager runs under     | `cert-manager`                          |
-
+| `groupName`                        | ✔️       | Identifies the company that created the webhook | `acme.neoskop.de`                       |
+| `certManager.namespace`            | ✔️       | The namespace cert-manager was installed to     | `cert-manager`                          |
+| `certManager.serviceAccountName`   | ✔️       | The service account cert-manager runs under     | `cert-manager`                          |
 
 ## Test suite
 
