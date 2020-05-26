@@ -1,0 +1,7 @@
+{
+    "tokenSecretRef": {
+        "name": "dnsimple-token",
+        "key": "token"
+    },
+    "account": "<Account-ID>"
+}

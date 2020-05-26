@@ -1,4 +1,4 @@
-IMAGE_NAME := "webhook"
+IMAGE_NAME := "neoskop/cert-manager-webhook-dnsimple"
 IMAGE_TAG := "latest"
 
 OUT := $(shell pwd)/_out
@@ -14,7 +14,7 @@ build:
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:
 	helm template \
-	    --name example-webhook \
+	    --name dnsimple-webhook \
         --set image.repository=$(IMAGE_NAME) \
         --set image.tag=$(IMAGE_TAG) \
-        deploy/example-webhook > "$(OUT)/rendered-manifest.yaml"
+        deploy/dnsimple-webhook > "$(OUT)/rendered-manifest.yaml"

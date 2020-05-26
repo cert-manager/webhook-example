@@ -1,54 +1,74 @@
-# ACME webhook example
+# DNSimple Webhook for cert-manager
 
-The ACME issuer type supports an optional 'webhook' solver, which can be used
-to implement custom DNS01 challenge solving logic.
+A [cert-manager][2] ACME DNS01 solver webhook for [DNSimple][1].
 
-This is useful if you need to use cert-manager with a DNS provider that is not
-officially supported in cert-manager core.
+## Pre-requisites
 
-## Why not in core?
+- [cert-manager][2] >= 0.13
+- Kubernetes >= 0.17
+- Helm 3
 
-As the project & adoption has grown, there has been an influx of DNS provider
-pull requests to our core codebase. As this number has grown, the test matrix
-has become un-maintainable and so, it's not possible for us to certify that
-providers work to a sufficient level.
+## Quickstart
 
-By creating this 'interface' between cert-manager and DNS providers, we allow
-users to quickly iterate and test out new integrations, and then packaging
-those up themselves as 'extensions' to cert-manager.
+Take note of your DNSimple API token and account ID from the account settings in the automation tab. Run the following commands replacing the account ID, API token placeholders and email address:
 
-We can also then provide a standardised 'testing framework', or set of
-conformance tests, which allow us to validate the a DNS provider works as
-expected.
+```
+$ helm install cert-manager-webhook-dnsimple \
+    --namespace cert-manager \
+    --dry-run \
+    --set dnsimple.account='<DNSIMPLE_ACCOUNT_ID>' \
+    --set dnsimple.token='<DNSIMPLE_API_TOKEN>' \
+    --set clusterIssuer.production.enabled=true \
+    --set clusterIssuer.staging.enabled=true \
+    --set clusterIssuer.email=email@example.com \
+    ./deploy/dnsimple
+```
 
-## Creating your own webhook
+## Options
 
-Webhook's themselves are deployed as Kubernetes API services, in order to allow
-administrators to restrict access to webhooks with Kubernetes RBAC.
+The Helm chart accepts the following values:
 
-This is important, as otherwise it'd be possible for anyone with access to your
-webhook to complete ACME challenge validations and obtain certificates.
+| name                               | required | description                                     | default value                           |
+|----------------------------------- | -------- | ----------------------------------------------- |---------------------------------------- |
+| `dnsimple.account`                 |     ✔️    | DNSimple Account ID                             | _empty_                                 |
+| `dnsimple.token`                   |     ✔️    | DNSimple API Token                              | _empty_                                 |
+| `clusterIssuer.email`              |          | LetsEncrypt Admin Email                         | `name@example.com`                      |
+| `clusterIssuer.production.enabled` |          | Create a production `ClusterIssuer`             | `false`                                 |
+| `clusterIssuer.staging.enabled`    |          | Create a staging `ClusterIssuer`                | `false`                                 |
+| `image.repository`                 |     ✔️    | Docker image for the webhook solver             | `neoskop/cert-manager-webhook-dnsimple` |
+| `image.tag`                        |     ✔️    | Docker image tag of the solver                  | `latest`                                |
+| `image.pullPolicy`                 |     ✔️    | Image pull policy of the solver                 | `IfNotPresent`                          |
+| `logLevel`                         |          | Set the verbosity of the solver                 | _empty_                                 |
+| `groupName`                        |     ✔️    | Identifies the company that created the webhook | `acme.neoskop.de`                       |
+| `certManager.namespace`            |     ✔️    | The namespace cert-manager was installed to     | `cert-manager`                          |
+| `certManager.serviceAccountName`   |     ✔️    | The service account cert-manager runs under     | `cert-manager`                          |
 
-To make the set up of these webhook's easier, we provide a template repository
-that can be used to get started quickly.
 
-### Creating your own repository
+## Test suite
 
-### Running the test suite
+All cert-manager webhooks have to pass the DNS01 provider conformance testing suite. To run that test suite on this plug-in download the test binaries:
 
-All DNS providers **must** run the DNS01 provider conformance testing suite,
-else they will have undetermined behaviour when used with cert-manager.
+```bash
+$ mkdir -p __main__/hack
+$ wget -O- https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-1.14.1-linux-amd64.tar.gz | tar xz --strip-components=1 -C __main__/hack
+```
 
-**It is essential that you configure and run the test suite when creating a
-DNS01 webhook.**
+Then set-up `testdata/dnsimple/config.json` and `testdata/dnsimple/dnsimple-token.yaml` according to the [README][3].
 
-An example Go test file has been provided in [main_test.go]().
-
-You can run the test suite with:
+Execute the test suite replacing `TEST_ZONE_NAME` with a DNS name you have control over with your DNSimple account:
 
 ```bash
 $ TEST_ZONE_NAME=example.com go test .
 ```
 
-The example file has a number of areas you must fill in and replace with your
-own options in order for tests to pass.
+## Release
+
+After you committed all of your changes, run the following command to tag a new version and build and push a new Docker image tag as well as a new Helm chart:
+
+```bash
+$ ./scripts/release.sh <patch|minor|major>
+```
+
+[1]: https://dnsimple.com/
+[2]: https://cert-manager.io/docs/installation/kubernetes/
+[3]: ./testdata/dnsimple/README.md
