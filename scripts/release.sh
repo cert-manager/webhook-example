@@ -51,7 +51,7 @@ SCRIPT_DIR=$(
 )
 
 git pull --rebase
-current_version=$(yq r $SCRIPT_DIR/../helm/Chart.yaml version)
+current_version=$(yq r $SCRIPT_DIR/../deploy/dnsimple/Chart.yaml version)
 version=$(inc_version $current_version $1)
 cd $SCRIPT_DIR/..
 docker build -t neoskop/cert-manager-webhook-dnsimple:$version .
