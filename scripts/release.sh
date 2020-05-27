@@ -66,7 +66,7 @@ git add .
 git commit -m "chore: Bump version to ${version}."
 git push
 
-helm package helm --destination .deploy
+helm package deploy/dnsimple --destination .deploy
 cr upload -o neoskop -r cert-manager-webhook-dnsimple -p .deploy
 git checkout gh-pages
 cr index -i ./index.yaml -p .deploy -o neoskop -r cert-manager-webhook-dnsimple -c https://neoskop.github.io/cert-manager-webhook-dnsimple/
