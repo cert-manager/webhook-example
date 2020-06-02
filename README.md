@@ -4,9 +4,9 @@ A [cert-manager][2] ACME DNS01 solver webhook for [DNSimple][1].
 
 ## Pre-requisites
 
-- [cert-manager][2] >= 0.13
-- Kubernetes >= 0.17
-- Helm 3
+- [cert-manager][2] >= 0.13 (The Helm chart uses the new API versions)
+- Kubernetes >= 1.17.x
+- Helm 3 (otherwise adjust the example below accordingly)
 
 ## Quickstart
 
