@@ -13,6 +13,7 @@ A [cert-manager][2] ACME DNS01 solver webhook for [DNSimple][1].
 Take note of your DNSimple API token and account ID from the account settings in the automation tab. Run the following commands replacing the account ID, API token placeholders and email address:
 
 ```bash
+$ helm repo add neoskop https://charts.neoskop.dev
 $ helm install cert-manager-webhook-dnsimple \
     --namespace cert-manager \
     --dry-run \
@@ -21,8 +22,9 @@ $ helm install cert-manager-webhook-dnsimple \
     --set clusterIssuer.production.enabled=true \
     --set clusterIssuer.staging.enabled=true \
     --set clusterIssuer.email=email@example.com \
-    ./deploy/dnsimple
+    neoskop/cert-manager-webhook-dnsimple
 ```
+_(Alternatively you can check out this repository and substitute neoskop/cert-manager-webhook-dnsimple with ./deploy/dnsimple)_
 
 Afterwards issue a certificate:
 
