@@ -22,7 +22,7 @@ clusterIssuer:
     create: false
 image:
   repository: neoskop/cert-manager-webhook-dnsimple
-  tag: 0.0.2
+  tag: 0.0.3
   pullPolicy: IfNotPresent
 nameOverride: ""
 fullnameOverride: ""
