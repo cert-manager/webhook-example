@@ -75,3 +75,9 @@ git commit -m "chore: Bump version to ${version}."
 git push
 git checkout master
 rm -rf .deploy/
+
+HELM_CHARTS_DIR=../neoskop-helm-charts
+[ -d $HELM_CHARTS_DIR ] || git clone git@github.com:neoskop/helm-charts.git $HELM_CHARTS_DIR
+cd $HELM_CHARTS_DIR
+./update-index.sh
+cd - &>/dev/null
