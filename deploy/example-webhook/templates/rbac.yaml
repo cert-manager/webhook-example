@@ -8,6 +8,47 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 ---
+# Uncomment if secrets are read from the webhook
+## Grant the webhook permission to read the secrets containing the credentials
+#apiVersion: rbac.authorization.k8s.io/v1
+#kind: Role
+#metadata:
+#  name: {{ include "example-webhook.fullname" . }}:secrets-reader
+#  namespace: {{ .Release.Namespace }}
+#  labels:
+#    app: {{ include "example-webhook.name" . }}
+#    chart: {{ include "example-webhook.chart" . }}
+#    release: {{ .Release.Name }}
+#    heritage: {{ .Release.Service }}
+#rules:
+#  - apiGroups:
+#    - ''
+#    resources:
+#    - 'secrets'
+#    verbs:
+#    - 'get'
+#---
+## Grant the webhook permission to read the secrets containing the credentials
+#apiVersion: rbac.authorization.k8s.io/v1
+#kind: RoleBinding
+#metadata:
+#  name: {{ include "example-webhook.fullname" . }}:secrets-reader
+#  namespace: {{ .Release.Namespace }}
+#  labels:
+#    app: {{ include "example-webhook.name" . }}
+#    chart: {{ include "example-webhook.chart" . }}
+#    release: {{ .Release.Name }}
+#    heritage: {{ .Release.Service }}
+#roleRef:
+#  apiGroup: rbac.authorization.k8s.io
+#  kind: Role
+#  name: {{ include "example-webhook.fullname" . }}:secrets-reader
+#subjects:
+#  - apiGroup: ""
+#    kind: ServiceAccount
+#    name: {{ include "example-webhook.fullname" . }}
+#    namespace: {{ .Release.Namespace }}
+#---
 # Grant the webhook permission to read the ConfigMap containing the Kubernetes
 # apiserver's requestheader-ca-certificate.
 # This ConfigMap is automatically created by the Kubernetes apiserver.

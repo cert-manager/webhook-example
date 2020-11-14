@@ -16,10 +16,16 @@ func TestRunsSuite(t *testing.T) {
 	// snippet of valid configuration that should be included on the
 	// ChallengeRequest passed as part of the test cases.
 
+	currentDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("error getting current working dir: %s", err.Error())
+	}
+
 	fixture := dns.NewFixture(&customDNSProviderSolver{},
 		dns.SetResolvedZone(zone),
 		dns.SetAllowAmbientCredentials(false),
 		dns.SetManifestPath("testdata/my-custom-solver"),
+		dns.SetManifestPath(currentDir+"/testdata"),
 	)
 
 	fixture.RunConformance(t)
