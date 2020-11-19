@@ -1,4 +1,4 @@
-# Cert Manager dynu ACME webhook
+# Cert Manager DYNU ACME webhook
 
 Webhook to get a certificate for dynu dns provider
 
