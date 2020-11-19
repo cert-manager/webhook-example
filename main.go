@@ -3,16 +3,26 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"strconv"
 
-	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	//"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-
+	// cmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
+	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
+	// "github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
+	"github.com/gstore/cert-manager-webhook-dynu/dynuclient"
 )
 
+var (
+	dnsRecordID int
+)
+
+// GroupName ...
 var GroupName = os.Getenv("GROUP_NAME")
 
 func main() {
@@ -41,7 +51,8 @@ type customDNSProviderSolver struct {
 	// 3. uncomment the relevant code in the Initialize method below
 	// 4. ensure your webhook's service account has the required RBAC role
 	//    assigned to it for interacting with the Kubernetes APIs you need.
-	//client kubernetes.Clientset
+	client     kubernetes.Clientset
+	httpClient *http.Client
 }
 
 // customDNSProviderConfig is a structure that is used to decode into when
@@ -65,7 +76,13 @@ type customDNSProviderConfig struct {
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
 	//Email           string `json:"email"`
-	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
+	// APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
+	APIKey     string `json:"apiKey"`
+	DomainID   string `json:"domainId"`
+	BaseURL    string `json:"baseURL"`
+	EndPoint   string `json:"endPoint"`
+	Production bool   `json:"production"`
+	TTL        int    `json:"ttl"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -89,10 +106,21 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration %v", cfg)
+	rec := dynuclient.DNSRecord{
 
-	// TODO: add code that sets a record in the DNS provider's console
+		NodeName:   "asgard",
+		RecordType: "TXT",
+		TextData:   "some text",
+		TTL:        "90",
+	}
+	domainID, err := strconv.Atoi(cfg.DomainID)
+
+	dynu := &dynuclient.DynuClient{DNSID: domainID, APISecret: cfg.APIKey, HTTPClient: c.httpClient}
+	dnsRecordID, err = dynu.CreateDNSRecord(rec)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -103,7 +131,13 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	// TODO: add code that deletes a record from the DNS provider's console
+	cfg, err := loadConfig(ch.Config)
+	domainID, err := strconv.Atoi(cfg.DomainID)
+	dynu := &dynuclient.DynuClient{DNSID: domainID, APISecret: cfg.APIKey, HTTPClient: c.httpClient}
+	err = dynu.RemoveDNSRecord(dnsRecordID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -119,15 +153,14 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 func (c *customDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	///// UNCOMMENT THE BELOW CODE TO MAKE A KUBERNETES CLIENTSET AVAILABLE TO
 	///// YOUR CUSTOM DNS PROVIDER
+	cl, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return err
+	}
 
-	//cl, err := kubernetes.NewForConfig(kubeClientConfig)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//c.client = cl
+	c.client = *cl
 
-	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLE
+	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLEuri := cfg.BaseURL + cfg.DomainId + "/" + cfg.EndPoint
 	return nil
 }
 

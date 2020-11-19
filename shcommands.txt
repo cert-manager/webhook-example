@@ -1,0 +1,2 @@
+dynu-post dns/123456/record {"nodeName": "txt","recordType": "TXT","ttl": 300,"textData": "Some Text"}
+dynu-del dns/1223456/record/98765
