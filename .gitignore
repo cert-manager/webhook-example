@@ -13,3 +13,4 @@
 
 # Ignore the built binary
 cert-manager-webhook-example
+_out/
