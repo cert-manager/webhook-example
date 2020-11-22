@@ -101,11 +101,12 @@ func (c *customDNSProviderSolver) Name() string {
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
 func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
+	fmt.Println("before config: ", ch)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("cfg: ", cfg)
 	rec := dynuclient.DNSRecord{
 
 		NodeName:   "asgard",
@@ -131,7 +132,9 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
+	fmt.Println("before config: ", ch)
 	cfg, err := loadConfig(ch.Config)
+	fmt.Println("cfg: ", cfg)
 	domainID, err := strconv.Atoi(cfg.DomainID)
 	dynu := &dynuclient.DynuClient{DNSID: domainID, APISecret: cfg.APIKey, HTTPClient: c.httpClient}
 	err = dynu.RemoveDNSRecord(dnsRecordID)
@@ -153,11 +156,12 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 func (c *customDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	///// UNCOMMENT THE BELOW CODE TO MAKE A KUBERNETES CLIENTSET AVAILABLE TO
 	///// YOUR CUSTOM DNS PROVIDER
+	fmt.Println("init")
 	cl, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("init:", cl)
 	c.client = *cl
 
 	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLEuri := cfg.BaseURL + cfg.DomainId + "/" + cfg.EndPoint
