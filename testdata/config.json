@@ -1,8 +1,5 @@
 {
   "APIKey": "secretkey",
   "DomainID": "123456",
-  "BaseURL": "https://api.dynu.com/v2/dns/",
-  "Endpoint": "record",
-  "Production": false,
   "TTL": 600
 }

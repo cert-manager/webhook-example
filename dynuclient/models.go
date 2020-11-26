@@ -31,8 +31,14 @@ type DNSResponse struct {
 // DynuClient ... options for DynuClient
 type DynuClient struct {
 	HTTPClient  *http.Client
-	DNSID       int
+	DNSID       string
 	DNSRecordID int
 	UserAgent   string
-	APISecret   string
+	APIKey      string
+}
+
+// DynuCreds - Details required to access API
+type DynuCreds struct {
+	APIKey string
+	DNSID  string
 }

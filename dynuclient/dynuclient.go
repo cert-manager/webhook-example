@@ -18,14 +18,14 @@ var httpClient *http.Client
 // CreateDNSRecord ... Create a DNS Record and return it's ID
 //   POST https://api.dynu.com/v2/dns/{DNSID}/record
 func (c *DynuClient) CreateDNSRecord(records DNSRecord) (int, error) {
-	dnsURL := fmt.Sprintf("%s/dns/%d/record", dynuAPI, c.DNSID)
+	dnsURL := fmt.Sprintf("%s/dns/%s/record", dynuAPI, c.DNSID)
 	body, err := json.Marshal(records)
 	if err != nil {
 		return -1, err
 	}
 	var resp *http.Response
 
-	resp, err = c.MakeRequest(dnsURL, "POST", bytes.NewReader(body))
+	resp, err = c.makeRequest(dnsURL, "POST", bytes.NewReader(body))
 	if err != nil {
 		return -1, err
 	}
@@ -52,10 +52,10 @@ func (c *DynuClient) CreateDNSRecord(records DNSRecord) (int, error) {
 // RemoveDNSRecord ... Removes a DNS record based on dnsRecordID
 //   DELETE https://api.dynu.com/v2/dns/{DNSID}/record/{DNSRecordID}
 func (c *DynuClient) RemoveDNSRecord(DNSRecordID int) error {
-	dnsURL := fmt.Sprintf("%s/dns/%d/record/%d", dynuAPI, c.DNSID, DNSRecordID)
+	dnsURL := fmt.Sprintf("%s/dns/%s/record/%d", dynuAPI, c.DNSID, DNSRecordID)
 	var resp *http.Response
 
-	resp, err := c.MakeRequest(dnsURL, "DELETE", nil)
+	resp, err := c.makeRequest(dnsURL, "DELETE", nil)
 	if err != nil {
 		return err
 	}
@@ -67,29 +67,27 @@ func (c *DynuClient) RemoveDNSRecord(DNSRecordID int) error {
 	return nil
 }
 
-// MakeRequest ...
-func (c *DynuClient) MakeRequest(URL string, method string, body io.Reader) (*http.Response, error) {
+func (c *DynuClient) makeRequest(URL string, method string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, URL, body)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header["accept"] = []string{"application/json"}
-	req.Header["User-Agent"] = []string{"Mozilla/5.0 (X11; Linux x86_64; rv:82.0) Gecko/20100101 Firefox/82.0"} //c.UserAgent)
+	req.Header["User-Agent"] = []string{c.UserAgent}
 	req.Header["Content-Type"] = []string{"application/json"}
-	req.Header["API-Key"] = []string{c.APISecret}
+	req.Header["API-Key"] = []string{c.APIKey}
 
 	if c.HTTPClient == nil {
 		c.HTTPClient = &http.Client{}
 	}
 
-	c.getHTTPClient().Timeout = 30 * time.Second
+	c.HTTPClient.Timeout = 30 * time.Second
 
-	return c.getHTTPClient().Do(req)
+	return c.HTTPClient.Do(req)
 }
 
-// DecodeBytes ...
-func (c *DynuClient) DecodeBytes(input []byte) (string, error) {
+func (c *DynuClient) decodeBytes(input []byte) (string, error) {
 
 	buf := new(strings.Builder)
 	_, err := io.Copy(buf, bytes.NewBuffer(input))
@@ -98,16 +96,4 @@ func (c *DynuClient) DecodeBytes(input []byte) (string, error) {
 	}
 
 	return buf.String(), nil
-}
-
-func (c *DynuClient) getHTTPClient() *http.Client {
-	if httpClient != nil {
-		return httpClient
-	}
-	if c.HTTPClient != nil {
-		httpClient = c.HTTPClient
-	} else {
-		httpClient = &http.Client{}
-	}
-	return httpClient
 }

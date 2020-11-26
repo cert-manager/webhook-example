@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,7 +17,11 @@ import (
 
 	// "github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
 	"github.com/gstore/cert-manager-webhook-dynu/dynuclient"
+	certmgrv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const acmeNode = "ACME node"
 
 var (
 	dnsRecordID int
@@ -77,12 +82,11 @@ type customDNSProviderConfig struct {
 
 	//Email           string `json:"email"`
 	// APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
-	APIKey     string `json:"apiKey"`
-	DomainID   string `json:"domainId"`
-	BaseURL    string `json:"baseURL"`
-	EndPoint   string `json:"endPoint"`
-	Production bool   `json:"production"`
-	TTL        int    `json:"ttl"`
+	APIKey             string                      `json:"apiKey"`
+	DomainID           string                      `json:"domainId"`
+	TTL                int                         `json:"ttl"`
+	APIKeySecretKeyRef certmgrv1.SecretKeySelector `json:"apikeySecretKeyRef"`
+	DomainIDKeyRef     certmgrv1.SecretKeySelector `json:"domainidSecretKeyRef"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -101,27 +105,23 @@ func (c *customDNSProviderSolver) Name() string {
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
 func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
-	fmt.Println("before config: ", ch)
-	cfg, err := loadConfig(ch.Config)
+
+	dynu, cfg, err := c.NewDynuClient(ch)
 	if err != nil {
 		return err
 	}
-	fmt.Println("cfg: ", cfg)
 	rec := dynuclient.DNSRecord{
 
-		NodeName:   "asgard",
+		NodeName:   acmeNode,
 		RecordType: "TXT",
-		TextData:   "some text",
-		TTL:        "90",
+		TextData:   ch.Key,
+		TTL:        strconv.Itoa(cfg.TTL),
 	}
-	domainID, err := strconv.Atoi(cfg.DomainID)
-
-	dynu := &dynuclient.DynuClient{DNSID: domainID, APISecret: cfg.APIKey, HTTPClient: c.httpClient}
+	//  &dynuclient.DynuClient{DNSID: cfg.DomainID, APIKey: cfg.APIKey, HTTPClient: c.httpClient}
 	dnsRecordID, err = dynu.CreateDNSRecord(rec)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -132,11 +132,10 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	fmt.Println("before config: ", ch)
-	cfg, err := loadConfig(ch.Config)
-	fmt.Println("cfg: ", cfg)
-	domainID, err := strconv.Atoi(cfg.DomainID)
-	dynu := &dynuclient.DynuClient{DNSID: domainID, APISecret: cfg.APIKey, HTTPClient: c.httpClient}
+	dynu, _, err := c.NewDynuClient(ch)
+	if err != nil {
+		return err
+	}
 	err = dynu.RemoveDNSRecord(dnsRecordID)
 	if err != nil {
 		return err
@@ -156,12 +155,10 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 func (c *customDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	///// UNCOMMENT THE BELOW CODE TO MAKE A KUBERNETES CLIENTSET AVAILABLE TO
 	///// YOUR CUSTOM DNS PROVIDER
-	fmt.Println("init")
 	cl, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return err
 	}
-	fmt.Println("init:", cl)
 	c.client = *cl
 
 	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLEuri := cfg.BaseURL + cfg.DomainId + "/" + cfg.EndPoint
@@ -181,4 +178,56 @@ func loadConfig(cfgJSON *extapi.JSON) (customDNSProviderConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+func (c *customDNSProviderSolver) getCredentials(config *customDNSProviderConfig, ns string) (*dynuclient.DynuCreds, error) {
+
+	creds := dynuclient.DynuCreds{}
+
+	if config.APIKey != "" {
+		creds.APIKey = config.APIKey
+	} else {
+		secret, err := c.client.CoreV1().Secrets(ns).Get(context.Background(), config.APIKeySecretKeyRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to load secret %q", ns+"/"+config.APIKeySecretKeyRef.Name)
+		}
+		if apikey, ok := secret.Data[config.APIKeySecretKeyRef.Key]; ok {
+			creds.APIKey = string(apikey)
+		} else {
+			return nil, fmt.Errorf("no key %q in secret %q", config.APIKeySecretKeyRef, ns+"/"+config.APIKeySecretKeyRef.Name)
+		}
+	}
+
+	if config.DomainID != "" {
+		creds.DNSID = config.DomainID
+	} else {
+		secret, err := c.client.CoreV1().Secrets(ns).Get(context.Background(), config.DomainIDKeyRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to load secret %q", ns+"/"+config.DomainIDKeyRef.Name)
+		}
+		if password, ok := secret.Data[config.DomainIDKeyRef.Key]; ok {
+			creds.DNSID = string(password)
+		} else {
+			return nil, fmt.Errorf("no key %q in secret %q", config.DomainIDKeyRef, ns+"/"+config.DomainIDKeyRef.Name)
+		}
+	}
+
+	return &creds, nil
+}
+
+// NewDynuClient - Create a new DynuClient
+func (c *customDNSProviderSolver) NewDynuClient(ch *v1alpha1.ChallengeRequest) (*dynuclient.DynuClient, *customDNSProviderConfig, error) {
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return nil, &cfg, err
+	}
+
+	creds, err := c.getCredentials(&cfg, ch.ResourceNamespace)
+	if err != nil {
+		return nil, &cfg, fmt.Errorf("error getting credentials: %v", err)
+	}
+
+	client := *&dynuclient.DynuClient{DNSID: creds.DNSID, APIKey: creds.APIKey, HTTPClient: c.httpClient}
+
+	return &client, &cfg, nil
 }

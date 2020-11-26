@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 
 	guntest "github.com/gstore/cert-manager-webhook-dynu/test"
@@ -30,8 +31,8 @@ var i int
 // }
 func TestRemoveDNSRecord(t *testing.T) {
 	expectedMethod := "DELETE"
-	dnsID := 1
-	expectedURL := fmt.Sprintf("/v2/dns/%d/record/12345", dnsID)
+	dnsID := "1"
+	expectedURL := fmt.Sprintf("/v2/dns/%s/record/12345", dnsID)
 
 	testHandlerFunc := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, expectedURL, req.URL.String(), "Should call %s but called %s", expectedURL, req.URL.String())
@@ -85,8 +86,7 @@ func TestCreateDNSRecord(t *testing.T) {
 	client := &guntest.Testclient{}
 	httpClient, teardown := client.TestingHTTPClient(testHandlerFunc)
 	defer teardown()
-
-	dynu := DynuClient{HTTPClient: httpClient, DNSID: domainID}
+	dynu := DynuClient{HTTPClient: httpClient, DNSID: strconv.Itoa(domainID)}
 	recordID, err := dynu.CreateDNSRecord(rec)
 	if err != nil {
 		fmt.Println("an error occured: ", err.Error())
@@ -109,7 +109,7 @@ func TestAddAndRemoveRecord(t *testing.T) {
 		State:      true,
 	}
 
-	d := &DynuClient{DNSID: dnsID, APISecret: apiKey}
+	d := &DynuClient{DNSID: strconv.Itoa(dnsID), APIKey: apiKey}
 	dnsrecordid, err := d.CreateDNSRecord(rec)
 
 	assert.NoError(t, err)
