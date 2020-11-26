@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"testing"
 
 	"time"
@@ -23,7 +24,7 @@ import (
 )
 
 var (
-	zone               = "example.com." // os.Getenv("TEST_ZONE_NAME")
+	zone               = os.Getenv("TEST_ZONE_NAME")
 	kubeBuilderBinPath = "./_out/kubebuilder/bin"
 	fqdn               string
 )
@@ -69,7 +70,7 @@ func TestRunsSuite(t *testing.T) {
 		},
 	}
 	httpCall := 0
-
+	fqdn = "cert-manager-dns01-tests-with-secret." + zone
 	testHandlerFunc := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, scenarios[httpCall].expected, req.URL.String(), scenarios[httpCall].scenario+" failed")
 		httpCall++
@@ -85,7 +86,7 @@ func TestRunsSuite(t *testing.T) {
 
 	srv := &server.BasicServer{
 		Handler: &test.Handler{
-			Log: logf.FromContext(ctx, "dnsBasicServer"),
+			Log: logf.FromContext(ctx, "dnsBasicServerSecret"),
 			TxtRecords: map[string][][]string{
 				fqdn: {
 					{},
@@ -121,12 +122,9 @@ func TestRunsSuite(t *testing.T) {
 	)
 
 	fixture.RunConformance(t)
-	for _, v := range scenarios {
-		fmt.Println("actual " + v.actual)
-		//assert.Equal(t, v.expected, v.actual, v.scenario+" failed")
-	}
 }
 func TestRunSuiteWithSecret(t *testing.T) {
+	t.Skip()
 	dnsResp := dynuclient.DNSResponse{
 		StatusCode: 200,
 		ID:         98765,
@@ -135,7 +133,7 @@ func TestRunSuiteWithSecret(t *testing.T) {
 		NodeName:   "nodeName",
 		Hostname:   "hostName",
 		RecordType: "TXT",
-		TTL:        90,
+		TTL:        200,
 		State:      true,
 		Content:    "content",
 		UpdatedOn:  "2020-10-29T23:00",
@@ -163,14 +161,12 @@ func TestRunSuiteWithSecret(t *testing.T) {
 		},
 	}
 	httpCall := 0
-	// if os.Getenv("TEST_ZONE_NAME") != "" {
-	// 	zone = os.Getenv("TEST_ZONE_NAME")
-	// }
-	// fqdn = "cert-manager-dns01-tests-with-secret." + zone
+	if os.Getenv("TEST_ZONE_NAME") != "" {
+		zone = os.Getenv("TEST_ZONE_NAME")
+	}
+	fqdn = "cert-manager-dns01-tests-with-secret." + zone
 	testHandlerFunc := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		fmt.Println("called: ", httpCall)
-		fmt.Println("scenario:", scenarios[httpCall].scenario)
-		// assert.Equal(t, scenarios[httpCall].expected, req.URL.String(), scenarios[httpCall].scenario+" failed")
+		assert.Equal(t, scenarios[httpCall].expected, req.URL.String(), scenarios[httpCall].scenario+" failed")
 		httpCall++
 		w.Write([]byte(dnsResponse))
 	})

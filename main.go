@@ -227,7 +227,7 @@ func (c *customDNSProviderSolver) NewDynuClient(ch *v1alpha1.ChallengeRequest) (
 		return nil, &cfg, fmt.Errorf("error getting credentials: %v", err)
 	}
 
-	client := *&dynuclient.DynuClient{DNSID: creds.DNSID, APIKey: creds.APIKey, HTTPClient: c.httpClient}
+	client := &dynuclient.DynuClient{DNSID: creds.DNSID, APIKey: creds.APIKey, HTTPClient: c.httpClient}
 
-	return &client, &cfg, nil
+	return client, &cfg, nil
 }
