@@ -11,11 +11,12 @@ import (
 
 	"time"
 
-	"gitlab.com/smueller18/cert-manager-webhook-inwx/test"
+	//"gitlab.com/smueller18/cert-manager-webhook-inwx/test"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
 	"github.com/gstore/cert-manager-webhook-dynu/dynuclient"
 	guntest "github.com/gstore/cert-manager-webhook-dynu/test"
+	test "github.com/gstore/cert-manager-webhook-dynu/test"
 	"github.com/stretchr/testify/assert"
 
 	logf "github.com/jetstack/cert-manager/pkg/logs"
@@ -33,7 +34,7 @@ func TestRunsSuite(t *testing.T) {
 	// The manifest path should contain a file named config.json that is a
 	// snippet of valid configuration that should be included on the
 	// ChallengeRequest passed as part of the test cases.
-
+	//  t.Skip()
 	dnsResp := dynuclient.DNSResponse{
 		StatusCode: 200,
 		ID:         98765,
@@ -83,19 +84,19 @@ func TestRunsSuite(t *testing.T) {
 
 	fqdn = "cert-manager-dns01-tests." + zone
 	ctx := logf.NewContext(nil, nil, t.Name())
-
+	txtRecs := map[string][][]string{
+		fqdn: {
+			{},
+			{},
+			{"123d=="},
+			{"123d=="},
+		},
+	}
 	srv := &server.BasicServer{
-		Handler: &test.Handler{
-			Log: logf.FromContext(ctx, "dnsBasicServerSecret"),
-			TxtRecords: map[string][][]string{
-				fqdn: {
-					{},
-					{},
-					{"123d=="},
-					{"123d=="},
-				},
-			},
-			Zones: []string{zone},
+		Handler: &test.DNSHandler{
+			Log:        logf.FromContext(ctx, "dnsBasicServerSecret"),
+			TxtRecords: txtRecs,
+			Zones:      []string{zone},
 		},
 	}
 
@@ -124,7 +125,7 @@ func TestRunsSuite(t *testing.T) {
 	fixture.RunConformance(t)
 }
 func TestRunSuiteWithSecret(t *testing.T) {
-	t.Skip()
+	//t.Skip()
 	dnsResp := dynuclient.DNSResponse{
 		StatusCode: 200,
 		ID:         98765,
@@ -178,18 +179,20 @@ func TestRunSuiteWithSecret(t *testing.T) {
 	fqdn = "cert-manager-dns01-tests." + zone
 	ctx := logf.NewContext(nil, nil, t.Name())
 
+	txtRecs := map[string][][]string{
+		fqdn: {
+			{},
+			{},
+			{"123d=="},
+			{"123d=="},
+		},
+	}
+
 	srv := &server.BasicServer{
-		Handler: &test.Handler{
-			Log: logf.FromContext(ctx, "dnsBasicServerSecret"),
-			TxtRecords: map[string][][]string{
-				fqdn: {
-					{},
-					{},
-					{"123d=="},
-					{"123d=="},
-				},
-			},
-			Zones: []string{zone},
+		Handler: &test.DNSHandler{
+			Log:        logf.FromContext(ctx, "dnsBasicServerSecret"),
+			TxtRecords: txtRecs,
+			Zones:      []string{zone},
 		},
 	}
 
@@ -210,7 +213,7 @@ func TestRunSuiteWithSecret(t *testing.T) {
 		dns.SetDNSServer(srv.ListenAddr()),
 		dns.SetManifestPath("testdata/secret-dynu-credentials.yaml"),
 		dns.SetBinariesPath(kubeBuilderBinPath),
-		dns.SetPropagationLimit(time.Duration(60)*time.Second),
+		dns.SetPropagationLimit(time.Duration(90)*time.Second),
 		dns.SetUseAuthoritative(false),
 		dns.SetConfig(&extapi.JSON{
 			Raw: d,

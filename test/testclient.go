@@ -28,3 +28,10 @@ func (c Testclient) TestingHTTPClient(handler http.Handler) (*http.Client, func(
 
 	return cli, s.Close
 }
+
+// NewTestingHTTPClient - Create a new TestingHTTPClient
+func (c *Testclient) NewTestingHTTPClient(handler http.Handler) (*http.Client, func()) {
+	client, fn := c.TestingHTTPClient(handler)
+
+	return client, fn
+}
