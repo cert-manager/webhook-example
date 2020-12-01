@@ -34,7 +34,6 @@ func TestRunsSuite(t *testing.T) {
 	// The manifest path should contain a file named config.json that is a
 	// snippet of valid configuration that should be included on the
 	// ChallengeRequest passed as part of the test cases.
-	//  t.Skip()
 	dnsResp := dynuclient.DNSResponse{
 		StatusCode: 200,
 		ID:         98765,
@@ -62,10 +61,6 @@ func TestRunsSuite(t *testing.T) {
 			expected: "/v2/dns/123456/record",
 		},
 		{
-			scenario: "DNS Record delete",
-			expected: "/v2/dns/123456/record/98765",
-		},
-		{ // why is cleanup running twice?
 			scenario: "DNS Record delete",
 			expected: "/v2/dns/123456/record/98765",
 		},
@@ -125,7 +120,6 @@ func TestRunsSuite(t *testing.T) {
 	fixture.RunConformance(t)
 }
 func TestRunSuiteWithSecret(t *testing.T) {
-	//t.Skip()
 	dnsResp := dynuclient.DNSResponse{
 		StatusCode: 200,
 		ID:         98765,
@@ -153,10 +147,6 @@ func TestRunSuiteWithSecret(t *testing.T) {
 			expected: "/v2/dns/123456/record",
 		},
 		{
-			scenario: "DNS Record delete",
-			expected: "/v2/dns/123456/record/98765",
-		},
-		{ // why is cleanup running twice?
 			scenario: "DNS Record delete",
 			expected: "/v2/dns/123456/record/98765",
 		},
