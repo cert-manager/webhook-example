@@ -47,13 +47,12 @@ func (b *DNSHandler) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	log := b.Log.WithName("serveDNS")
-	//fmt.Printf("req: %v\n", req)
 	m := new(dns.Msg)
 	m.SetReply(req)
 	defer w.WriteMsg(m)
 
 	log.Info(m.String())
-	log.Info("\n\nreq count: %v\nlen: %v\n\n", requestCount[req.Question[0].Name], len(b.TxtRecords[req.Question[0].Name]))
+
 	if requestCount[req.Question[0].Name] < len(b.TxtRecords[req.Question[0].Name]) {
 		// TODO: investigate why this is needed.  It seems that the object isn't being released between tests
 		if requestCount[req.Question[0].Name] == 3 {
