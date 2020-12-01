@@ -53,12 +53,13 @@ func (b *DNSHandler) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	defer w.WriteMsg(m)
 
 	log.Info(m.String())
-	fmt.Printf("\n\nreq count: %v\nlen: %v\n\n", requestCount[req.Question[0].Name], len(b.TxtRecords[req.Question[0].Name]))
+	log.Info("\n\nreq count: %v\nlen: %v\n\n", requestCount[req.Question[0].Name], len(b.TxtRecords[req.Question[0].Name]))
 	if requestCount[req.Question[0].Name] < len(b.TxtRecords[req.Question[0].Name]) {
+		// TODO: investigate why this is needed.  It seems that the object isn't being released between tests
 		if requestCount[req.Question[0].Name] == 3 {
 			requestCount[req.Question[0].Name] = 0
 		}
-		//fmt.Println("requestcount")
+
 		for _, record := range b.TxtRecords[req.Question[0].Name][requestCount[req.Question[0].Name]] {
 			fmt.Println("for loop")
 			txtRR, _ := dns.NewRR(fmt.Sprintf("%s %d IN TXT %s", req.Question[0].Name, defaultTTL, record))
@@ -68,7 +69,6 @@ func (b *DNSHandler) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	}
 
 	for _, rr := range m.Answer {
-		//fmt.Printf("responding %v", rr.String())
 		log.Info("responding", "response", rr.String())
 	}
 	count++
