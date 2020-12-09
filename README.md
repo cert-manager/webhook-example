@@ -24,13 +24,14 @@ $ helm install cert-manager-webhook-dnsimple \
     --set clusterIssuer.email=email@example.com \
     neoskop/cert-manager-webhook-dnsimple
 ```
+
 _(Alternatively you can check out this repository and substitute neoskop/cert-manager-webhook-dnsimple with ./deploy/dnsimple)_
 
 Afterwards issue a certificate:
 
 ```bash
 $ cat << EOF | kubectl apply -f -
-apiVersion: cert-manager.io/v1alpha3
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: dnsimple-test
