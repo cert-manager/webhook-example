@@ -88,7 +88,7 @@ func (c *dnsimpleDNSProviderSolver) Name() string {
 func (c *dnsimpleDNSProviderSolver) getClient(cfg *dnsimpleDNSProviderConfig, namespace string) (*dnsimple.Client, error) {
 	secretName := cfg.TokenSecretRef.LocalObjectReference.Name
 	klog.V(6).Infof("Try to load secret `%s` with key `%s`", secretName, cfg.TokenSecretRef.Key)
-	sec, err := c.client.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
+	sec, err := c.client.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to get secret `%s`; %v", secretName, err)
