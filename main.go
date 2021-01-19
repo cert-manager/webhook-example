@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -71,7 +72,6 @@ type dnsimpleDNSProviderConfig struct {
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
-	Account        string                   `json:"account"`
 	TokenSecretRef cmmeta.SecretKeySelector `json:"tokenSecretRef"`
 }
 
@@ -118,15 +118,15 @@ func (c *dnsimpleDNSProviderSolver) getDomainAndEntry(ch *v1alpha1.ChallengeRequ
 	return entry, domain
 }
 
-func (c *dnsimpleDNSProviderSolver) getExistingRecord(cfg *dnsimpleDNSProviderConfig, client *dnsimple.Client, zoneName string, entry string, key string) (*dnsimple.ZoneRecord, error) {
-	zone, err := client.Zones.GetZone(context.Background(), cfg.Account, zoneName)
+func (c *dnsimpleDNSProviderSolver) getExistingRecord(cfg *dnsimpleDNSProviderConfig, client *dnsimple.Client, accountID string, zoneName string, entry string, key string) (*dnsimple.ZoneRecord, error) {
+	zone, err := client.Zones.GetZone(context.Background(), accountID, zoneName)
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to get zone: %s", err)
 	}
 
 	// Look for existing TXT records.
-	records, err := client.Zones.ListRecords(context.Background(), cfg.Account, zone.Data.Name, &dnsimple.ZoneRecordListOptions{Type: dnsimple.String("TXT"), Name: dnsimple.String(entry)})
+	records, err := client.Zones.ListRecords(context.Background(), accountID, zone.Data.Name, &dnsimple.ZoneRecordListOptions{Type: dnsimple.String("TXT"), Name: dnsimple.String(entry)})
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to get resource records: %s", err)
@@ -141,9 +141,9 @@ func (c *dnsimpleDNSProviderSolver) getExistingRecord(cfg *dnsimpleDNSProviderCo
 	return nil, nil
 }
 
-func (c *dnsimpleDNSProviderSolver) updateRecord(cfg *dnsimpleDNSProviderConfig, client *dnsimple.Client, record *dnsimple.ZoneRecord, key string) (*dnsimple.ZoneRecord, error) {
+func (c *dnsimpleDNSProviderSolver) updateRecord(cfg *dnsimpleDNSProviderConfig, client *dnsimple.Client, accountID string, record *dnsimple.ZoneRecord, key string) (*dnsimple.ZoneRecord, error) {
 	attributes := dnsimple.ZoneRecordAttributes{Content: key}
-	updatedRecord, err := client.Zones.UpdateRecord(context.Background(), cfg.Account, record.ZoneID, record.ID, attributes)
+	updatedRecord, err := client.Zones.UpdateRecord(context.Background(), accountID, record.ZoneID, record.ID, attributes)
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to update record: %s", err)
@@ -152,9 +152,9 @@ func (c *dnsimpleDNSProviderSolver) updateRecord(cfg *dnsimpleDNSProviderConfig,
 	return updatedRecord.Data, nil
 }
 
-func (c *dnsimpleDNSProviderSolver) createRecord(cfg *dnsimpleDNSProviderConfig, client *dnsimple.Client, entry *string, zoneName string, key string) (*dnsimple.ZoneRecord, error) {
+func (c *dnsimpleDNSProviderSolver) createRecord(cfg *dnsimpleDNSProviderConfig, client *dnsimple.Client, accountID string, entry *string, zoneName string, key string) (*dnsimple.ZoneRecord, error) {
 	attributes := dnsimple.ZoneRecordAttributes{Name: entry, Type: "TXT", Content: key, TTL: 60}
-	createdRecord, err := client.Zones.CreateRecord(context.Background(), cfg.Account, zoneName, attributes)
+	createdRecord, err := client.Zones.CreateRecord(context.Background(), accountID, zoneName, attributes)
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to create record: %s", err)
@@ -163,14 +163,23 @@ func (c *dnsimpleDNSProviderSolver) createRecord(cfg *dnsimpleDNSProviderConfig,
 	return createdRecord.Data, nil
 }
 
-func (c *dnsimpleDNSProviderSolver) deleteRecord(cfg *dnsimpleDNSProviderConfig, client *dnsimple.Client, zoneName string, record *dnsimple.ZoneRecord) (*dnsimple.ZoneRecord, error) {
-	createdRecord, err := client.Zones.DeleteRecord(context.Background(), cfg.Account, zoneName, record.ID)
+func (c *dnsimpleDNSProviderSolver) deleteRecord(cfg *dnsimpleDNSProviderConfig, client *dnsimple.Client, accountID string, zoneName string, record *dnsimple.ZoneRecord) (*dnsimple.ZoneRecord, error) {
+	createdRecord, err := client.Zones.DeleteRecord(context.Background(), accountID, zoneName, record.ID)
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to delete record: %s", err)
 	}
 
 	return createdRecord.Data, nil
+}
+
+func Whoami(client *dnsimple.Client) (string, error) {
+	whoamiResponse, err := client.Identity.Whoami(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	return strconv.FormatInt(whoamiResponse.Data.Account.ID, 10), nil
 }
 
 // Present is responsible for actually presenting the DNS record with the
@@ -190,23 +199,28 @@ func (c *dnsimpleDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error
 		return fmt.Errorf("unable to get client: %s", err)
 	}
 
+	accountID, err := Whoami(client)
+	if err != nil {
+		return fmt.Errorf("unable to fetch account ID: %s", err)
+	}
+
 	entry, domain := c.getDomainAndEntry(ch)
 	klog.V(6).Infof("present for entry=%s, domain=%s", entry, domain)
 
-	existingRecord, err := c.getExistingRecord(&cfg, client, domain, entry, ch.Key)
+	existingRecord, err := c.getExistingRecord(&cfg, client, accountID, domain, entry, ch.Key)
 
 	if err != nil {
 		return fmt.Errorf("unable to find txt records: %s", err)
 	}
 
 	if existingRecord != nil {
-		_, err = c.updateRecord(&cfg, client, existingRecord, ch.Key)
+		_, err = c.updateRecord(&cfg, client, accountID, existingRecord, ch.Key)
 
 		if err != nil {
 			return fmt.Errorf("unable to update record: %s", err)
 		}
 	} else {
-		_, err = c.createRecord(&cfg, client, &entry, domain, ch.Key)
+		_, err = c.createRecord(&cfg, client, accountID, &entry, domain, ch.Key)
 
 		if err != nil {
 			return fmt.Errorf("unable to create record: %s", err)
@@ -234,13 +248,18 @@ func (c *dnsimpleDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error
 		return fmt.Errorf("unable to get client: %s", err)
 	}
 
+	accountID, err := Whoami(client)
+	if err != nil {
+		return fmt.Errorf("unable to fetch account ID: %s", err)
+	}
+
 	entry, domain := c.getDomainAndEntry(ch)
 	klog.V(6).Infof("present for entry=%s, domain=%s", entry, domain)
 
-	existingRecord, err := c.getExistingRecord(&cfg, client, domain, entry, ch.Key)
+	existingRecord, err := c.getExistingRecord(&cfg, client, accountID, domain, entry, ch.Key)
 
 	if existingRecord != nil {
-		_, err = c.deleteRecord(&cfg, client, domain, existingRecord)
+		_, err = c.deleteRecord(&cfg, client, accountID, domain, existingRecord)
 
 		if err != nil {
 			return fmt.Errorf("unable to delete record: %s", err)
