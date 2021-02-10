@@ -13,3 +13,6 @@
 
 # Ignore the built binary
 cert-manager-webhook-example
+
+# Test Binaries
+kubebuilder
