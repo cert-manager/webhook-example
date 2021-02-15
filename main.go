@@ -6,21 +6,31 @@ import (
 	"os"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubectl/pkg/scheme"
 
+	validator "github.com/go-playground/validator/v10"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
-
+	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/aliorouji/cert-manager-webhook-sotoon/api/v1beta1"
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
+
+var validate *validator.Validate
 
 func main() {
 	if GroupName == "" {
 		panic("GROUP_NAME must be specified")
 	}
+
+	validate = validator.New()
 
 	// This will register our custom DNS provider with the webhook serving
 	// library, making it available as an API under the provided GroupName.
@@ -66,10 +76,46 @@ type sotoonDNSProviderConfig struct {
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
-	Email             string                   `json:"email"`
-	Endpoint          string                   `json:"endpoint"`
-	Namespace         string                   `json:"namespace"`
+	Email             string                   `json:"email" validate:"email"`
+	Endpoint          string                   `json:"endpoint" validate:"url"`
+	Namespace         string                   `json:"namespace" validate:"hostname_rfc1123"`
 	APITokenSecretRef corev1.SecretKeySelector `json:"apiTokenSecretRef"`
+}
+
+func (c *sotoonDNSProviderConfig) validate() error {
+	return validate.Struct(c)
+}
+
+func (c *sotoonDNSProviderSolver) secret(ref corev1.SecretKeySelector, namespace string) (string, error) {
+	if ref.Name == "" {
+		return "", nil
+	}
+
+	secret, err := c.client.CoreV1().Secrets(namespace).Get(ref.Name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	bytes, ok := secret.Data[ref.Key]
+	if !ok {
+		return "", fmt.Errorf("key not found %q in secret '%s/%s'", ref.Key, namespace, ref.Name)
+	}
+	return string(bytes), nil
+}
+
+func (c *sotoonDNSProviderSolver) sotoonClient(apiEndpoint, apiToken string) (*rest.RESTClient, error) {
+
+	v1beta1.AddToScheme(scheme.Scheme)
+
+	restConfig := &rest.Config{}
+	restConfig.Host = apiEndpoint
+	restConfig.APIPath = "/apis"
+	restConfig.BearerToken = apiToken
+	restConfig.ContentConfig.GroupVersion = &v1beta1.GroupVersion
+	restConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
+	restConfig.UserAgent = rest.DefaultKubernetesUserAgent()
+
+	return rest.UnversionedRESTClientFor(restConfig)
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -92,6 +138,33 @@ func (c *sotoonDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	if err != nil {
 		return err
 	}
+
+	if err := cfg.validate(); err != nil {
+		return err
+	}
+
+	apiToken, err := c.secret(cfg.APITokenSecretRef, ch.ResourceNamespace)
+	if err != nil {
+		return err
+	}
+
+	scl, err := c.sotoonClient(cfg.Endpoint, apiToken)
+	if err != nil {
+		return err
+	}
+
+	origin := util.UnFqdn(ch.ResolvedZone)
+
+	dzs := v1beta1.DomainZoneList{}
+	scl.
+		Get().
+		Namespace(cfg.Namespace).
+		Resource("domainzones").
+		VersionedParams(&metav1.ListOptions{LabelSelector: fmt.Sprintf("dns.ravh.ir/origin=%s", origin)}, scheme.ParameterCodec).
+		Do().
+		Into(&dzs)
+
+	fmt.Println(dzs)
 
 	// TODO: do something more useful with the decoded configuration
 	fmt.Printf("Decoded configuration %v", cfg)
@@ -139,6 +212,7 @@ func loadConfig(cfgJSON *extapi.JSON) (sotoonDNSProviderConfig, error) {
 	if cfgJSON == nil {
 		return cfg, nil
 	}
+
 	if err := json.Unmarshal(cfgJSON.Raw, &cfg); err != nil {
 		return cfg, fmt.Errorf("error decoding solver config: %v", err)
 	}
