@@ -11,5 +11,7 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+.idea
+
 # Ignore the built binary
 cert-manager-webhook-example

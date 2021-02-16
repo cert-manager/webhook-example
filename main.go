@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -91,7 +92,7 @@ func (c *sotoonDNSProviderSolver) secret(ref corev1.SecretKeySelector, namespace
 		return "", nil
 	}
 
-	secret, err := c.client.CoreV1().Secrets(namespace).Get(ref.Name, metav1.GetOptions{})
+	secret, err := c.client.CoreV1().Secrets(namespace).Get(context.TODO(), ref.Name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -161,7 +162,7 @@ func (c *sotoonDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		Namespace(cfg.Namespace).
 		Resource("domainzones").
 		VersionedParams(&metav1.ListOptions{LabelSelector: fmt.Sprintf("dns.ravh.ir/origin=%s", origin)}, scheme.ParameterCodec).
-		Do().
+		Do(context.TODO()).
 		Into(&dzs)
 
 	fmt.Println(dzs)
