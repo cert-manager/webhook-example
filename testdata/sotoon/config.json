@@ -1,0 +1,8 @@
+{
+    "endpoint": "<sotoon-api-url>",
+    "namespace": "<sotoon-namespace-of-yours>",
+    "apiTokenSecretRef": {
+        "Name": "sotoon-credentials",
+        "Key": "apiToken"
+    }
+}

@@ -6,6 +6,7 @@ OUT := $(shell pwd)/_out
 $(shell mkdir -p "$(OUT)")
 
 verify:
+	sh ./scripts/fetch-test-binaries.sh
 	go test -v .
 
 build:

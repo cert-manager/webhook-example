@@ -17,9 +17,10 @@ func TestRunsSuite(t *testing.T) {
 	// ChallengeRequest passed as part of the test cases.
 
 	fixture := dns.NewFixture(&sotoonDNSProviderSolver{},
+		dns.SetBinariesPath("_out/kubebuilder/bin"),
 		dns.SetResolvedZone(zone),
 		dns.SetAllowAmbientCredentials(false),
-		dns.SetManifestPath("testdata/my-custom-solver"),
+		dns.SetManifestPath("testdata/sotoon"),
 	)
 
 	fixture.RunConformance(t)

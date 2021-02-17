@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -26,12 +27,16 @@ var GroupName = os.Getenv("GROUP_NAME")
 
 var validate *validator.Validate
 
+func init() {
+	validate = validator.New()
+}
+
 func main() {
 	if GroupName == "" {
 		panic("GROUP_NAME must be specified")
 	}
 
-	validate = validator.New()
+	fmt.Println("salaaaam")
 
 	// This will register our custom DNS provider with the webhook serving
 	// library, making it available as an API under the provided GroupName.
@@ -77,7 +82,6 @@ type sotoonDNSProviderConfig struct {
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
-	Email             string                   `json:"email" validate:"email"`
 	Endpoint          string                   `json:"endpoint" validate:"url"`
 	Namespace         string                   `json:"namespace" validate:"hostname_rfc1123"`
 	APITokenSecretRef corev1.SecretKeySelector `json:"apiTokenSecretRef"`
@@ -104,12 +108,16 @@ func (c *sotoonDNSProviderSolver) secret(ref corev1.SecretKeySelector, namespace
 	return string(bytes), nil
 }
 
-func (c *sotoonDNSProviderSolver) sotoonClient(apiEndpoint, apiToken string) (*rest.RESTClient, error) {
+func (c *sotoonDNSProviderSolver) sotoonClient(ch *v1alpha1.ChallengeRequest, cfg *sotoonDNSProviderConfig) (*rest.RESTClient, error) {
+	apiToken, err := c.secret(cfg.APITokenSecretRef, ch.ResourceNamespace)
+	if err != nil {
+		return nil, err
+	}
 
 	v1beta1.AddToScheme(scheme.Scheme)
 
 	restConfig := &rest.Config{}
-	restConfig.Host = apiEndpoint
+	restConfig.Host = cfg.Endpoint
 	restConfig.APIPath = "/apis"
 	restConfig.BearerToken = apiToken
 	restConfig.ContentConfig.GroupVersion = &v1beta1.GroupVersion
@@ -129,6 +137,97 @@ func (c *sotoonDNSProviderSolver) Name() string {
 	return "sotoon"
 }
 
+func getRelevantZones(sotoonClient *rest.RESTClient, namespace, origin string) (*v1beta1.DomainZoneList, error) {
+	dzl := &v1beta1.DomainZoneList{}
+
+	if err := sotoonClient.
+		Get().
+		Namespace(namespace).
+		Resource("domainzones").
+		VersionedParams(&metav1.ListOptions{LabelSelector: fmt.Sprintf("dns.ravh.ir/origin=%s", origin)}, scheme.ParameterCodec).
+		Do(context.TODO()).
+		Into(dzl); err != nil {
+		return nil, err
+	}
+
+	return dzl, nil
+}
+
+func addTXTRecord(sotoonClient *rest.RESTClient, zone *v1beta1.DomainZone, subdomain, target string) error {
+	if zone.Status.Status == "OK" {
+		if zone.Spec.Records == nil {
+			zone.Spec.Records = make(v1beta1.RecordsMap)
+		}
+
+		records := zone.Spec.Records[subdomain]
+		if records == nil {
+			records = v1beta1.RecordList{}
+		}
+
+		for _, r := range records {
+			if r.TXT == target {
+				return nil
+			}
+		}
+
+		records = append(records, v1beta1.Record{
+			SpecifiedType: "TXT",
+			TXT:           target,
+			TTL:           30,
+		})
+
+		zone.Spec.Records[subdomain] = records
+
+		zoneData, err := json.Marshal(zone)
+		if err != nil {
+			return err
+		}
+
+		if err := sotoonClient.Put().Name(zone.Name).Namespace(zone.Namespace).Resource("domainzones").Body(zoneData).Do(context.TODO()).Into(zone); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func removeTXTRecord(sotoonClient *rest.RESTClient, zone *v1beta1.DomainZone, subdomain, target string) error {
+	if zone.Status.Status == "OK" {
+		if zone.Spec.Records == nil {
+			return nil
+		}
+
+		records := zone.Spec.Records[subdomain]
+		if records == nil {
+			return nil
+		}
+
+		var newRecords v1beta1.RecordList
+		for _, r := range records {
+			if r.TXT != target {
+				newRecords = append(newRecords, r)
+			}
+		}
+
+		if len(newRecords) == len(records) {
+			return nil
+		}
+
+		zone.Spec.Records[subdomain] = newRecords
+
+		zoneData, err := json.Marshal(zone)
+		if err != nil {
+			return err
+		}
+
+		if err := sotoonClient.Put().Name(zone.Name).Namespace(zone.Namespace).Resource("domainzones").Body(zoneData).Do(context.TODO()).Into(zone); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Present is responsible for actually presenting the DNS record with the
 // DNS provider.
 // This method should tolerate being called multiple times with the same value.
@@ -140,37 +239,26 @@ func (c *sotoonDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 
-	if err := cfg.validate(); err != nil {
-		return err
-	}
-
-	apiToken, err := c.secret(cfg.APITokenSecretRef, ch.ResourceNamespace)
-	if err != nil {
-		return err
-	}
-
-	scl, err := c.sotoonClient(cfg.Endpoint, apiToken)
+	sotoonClient, err := c.sotoonClient(ch, cfg)
 	if err != nil {
 		return err
 	}
 
 	origin := util.UnFqdn(ch.ResolvedZone)
+	zones, err := getRelevantZones(sotoonClient, cfg.Namespace, origin)
+	if err != nil {
+		return err
+	}
 
-	dzs := v1beta1.DomainZoneList{}
-	scl.
-		Get().
-		Namespace(cfg.Namespace).
-		Resource("domainzones").
-		VersionedParams(&metav1.ListOptions{LabelSelector: fmt.Sprintf("dns.ravh.ir/origin=%s", origin)}, scheme.ParameterCodec).
-		Do(context.TODO()).
-		Into(&dzs)
+	subdomain := getSubDomain(origin, ch.ResolvedFQDN)
+	target := ch.Key
 
-	fmt.Println(dzs)
+	for _, zone := range zones.Items {
+		if err := addTXTRecord(sotoonClient, &zone, subdomain, target); err != nil {
+			return err
+		}
+	}
 
-	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration %v", cfg)
-
-	// TODO: add code that sets a record in the DNS provider's console
 	return nil
 }
 
@@ -181,6 +269,31 @@ func (c *sotoonDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *sotoonDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+
+	sotoonClient, err := c.sotoonClient(ch, cfg)
+	if err != nil {
+		return err
+	}
+
+	origin := util.UnFqdn(ch.ResolvedZone)
+	zones, err := getRelevantZones(sotoonClient, cfg.Namespace, origin)
+	if err != nil {
+		return err
+	}
+
+	subdomain := getSubDomain(origin, ch.ResolvedFQDN)
+	target := ch.Key
+
+	for _, zone := range zones.Items {
+		if err := removeTXTRecord(sotoonClient, &zone, subdomain, target); err != nil {
+			return err
+		}
+	}
+
 	// TODO: add code that deletes a record from the DNS provider's console
 	return nil
 }
@@ -207,16 +320,29 @@ func (c *sotoonDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stop
 
 // loadConfig is a small helper function that decodes JSON configuration into
 // the typed config struct.
-func loadConfig(cfgJSON *extapi.JSON) (sotoonDNSProviderConfig, error) {
-	cfg := sotoonDNSProviderConfig{}
+func loadConfig(cfgJSON *extapi.JSON) (*sotoonDNSProviderConfig, error) {
+	cfg := &sotoonDNSProviderConfig{}
 	// handle the 'base case' where no configuration has been provided
 	if cfgJSON == nil {
 		return cfg, nil
 	}
 
-	if err := json.Unmarshal(cfgJSON.Raw, &cfg); err != nil {
+	if err := json.Unmarshal(cfgJSON.Raw, cfg); err != nil {
 		return cfg, fmt.Errorf("error decoding solver config: %v", err)
 	}
 
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
+}
+
+// utils
+func getSubDomain(domain, fqdn string) string {
+	if idx := strings.Index(fqdn, "."+domain); idx != -1 {
+		return fqdn[:idx]
+	}
+
+	return util.UnFqdn(fqdn)
 }
