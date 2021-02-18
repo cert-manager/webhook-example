@@ -1,14 +1,14 @@
 ---
 # Create a selfsigned Issuer, in order to create a root CA certificate for
 # signing webhook serving certificates
-apiVersion: cert-manager.io/v1alpha3
+apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
-  name: {{ include "example-webhook.selfSignedIssuer" . }}
+  name: {{ include "cert-manager-webhook-sotoon.selfSignedIssuer" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "cert-manager-webhook-sotoon.name" . }}
+    chart: {{ include "cert-manager-webhook-sotoon.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
@@ -17,60 +17,60 @@ spec:
 ---
 
 # Generate a CA Certificate used to sign certificates for the webhook
-apiVersion: cert-manager.io/v1alpha3
+apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
-  name: {{ include "example-webhook.rootCACertificate" . }}
+  name: {{ include "cert-manager-webhook-sotoon.rootCACertificate" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "cert-manager-webhook-sotoon.name" . }}
+    chart: {{ include "cert-manager-webhook-sotoon.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  secretName: {{ include "example-webhook.rootCACertificate" . }}
+  secretName: {{ include "cert-manager-webhook-sotoon.rootCACertificate" . }}
   duration: 43800h # 5y
   issuerRef:
-    name: {{ include "example-webhook.selfSignedIssuer" . }}
-  commonName: "ca.example-webhook.cert-manager"
+    name: {{ include "cert-manager-webhook-sotoon.selfSignedIssuer" . }}
+  commonName: "ca.cert-manager-webhook-sotoon.cert-manager"
   isCA: true
 
 ---
 
 # Create an Issuer that uses the above generated CA certificate to issue certs
-apiVersion: cert-manager.io/v1alpha3
+apiVersion: cert-manager.io/v1alpha2
 kind: Issuer
 metadata:
-  name: {{ include "example-webhook.rootCAIssuer" . }}
+  name: {{ include "cert-manager-webhook-sotoon.rootCAIssuer" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "cert-manager-webhook-sotoon.name" . }}
+    chart: {{ include "cert-manager-webhook-sotoon.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
   ca:
-    secretName: {{ include "example-webhook.rootCACertificate" . }}
+    secretName: {{ include "cert-manager-webhook-sotoon.rootCACertificate" . }}
 
 ---
 
 # Finally, generate a serving certificate for the webhook to use
-apiVersion: cert-manager.io/v1alpha3
+apiVersion: cert-manager.io/v1alpha2
 kind: Certificate
 metadata:
-  name: {{ include "example-webhook.servingCertificate" . }}
+  name: {{ include "cert-manager-webhook-sotoon.servingCertificate" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "cert-manager-webhook-sotoon.name" . }}
+    chart: {{ include "cert-manager-webhook-sotoon.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  secretName: {{ include "example-webhook.servingCertificate" . }}
+  secretName: {{ include "cert-manager-webhook-sotoon.servingCertificate" . }}
   duration: 8760h # 1y
   issuerRef:
-    name: {{ include "example-webhook.rootCAIssuer" . }}
+    name: {{ include "cert-manager-webhook-sotoon.rootCAIssuer" . }}
   dnsNames:
-  - {{ include "example-webhook.fullname" . }}
-  - {{ include "example-webhook.fullname" . }}.{{ .Release.Namespace }}
-  - {{ include "example-webhook.fullname" . }}.{{ .Release.Namespace }}.svc
+  - {{ include "cert-manager-webhook-sotoon.fullname" . }}
+  - {{ include "cert-manager-webhook-sotoon.fullname" . }}.{{ .Release.Namespace }}
+  - {{ include "cert-manager-webhook-sotoon.fullname" . }}.{{ .Release.Namespace }}.svc

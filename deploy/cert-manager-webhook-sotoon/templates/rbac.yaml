@@ -1,24 +1,25 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "example-webhook.fullname" . }}
+  name: {{ include "cert-manager-webhook-sotoon.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "cert-manager-webhook-sotoon.name" . }}
+    chart: {{ include "cert-manager-webhook-sotoon.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 ---
 # Grant the webhook permission to read the ConfigMap containing the Kubernetes
 # apiserver's requestheader-ca-certificate.
 # This ConfigMap is automatically created by the Kubernetes apiserver.
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
-  name: {{ include "example-webhook.fullname" . }}:webhook-authentication-reader
+  name: {{ include "cert-manager-webhook-sotoon.fullname" . }}:webhook-authentication-reader
   namespace: kube-system
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "cert-manager-webhook-sotoon.name" . }}
+    chart: {{ include "cert-manager-webhook-sotoon.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 roleRef:
@@ -28,18 +29,18 @@ roleRef:
 subjects:
   - apiGroup: ""
     kind: ServiceAccount
-    name: {{ include "example-webhook.fullname" . }}
+    name: {{ include "cert-manager-webhook-sotoon.fullname" . }}
     namespace: {{ .Release.Namespace }}
 ---
 # apiserver gets the auth-delegator role to delegate auth decisions to
 # the core apiserver
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "example-webhook.fullname" . }}:auth-delegator
+  name: {{ include "cert-manager-webhook-sotoon.fullname" . }}:auth-delegator
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "cert-manager-webhook-sotoon.name" . }}
+    chart: {{ include "cert-manager-webhook-sotoon.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 roleRef:
@@ -49,17 +50,17 @@ roleRef:
 subjects:
   - apiGroup: ""
     kind: ServiceAccount
-    name: {{ include "example-webhook.fullname" . }}
+    name: {{ include "cert-manager-webhook-sotoon.fullname" . }}
     namespace: {{ .Release.Namespace }}
 ---
 # Grant cert-manager permission to validate using our apiserver
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: {{ include "example-webhook.fullname" . }}:domain-solver
+  name: {{ include "cert-manager-webhook-sotoon.fullname" . }}:domain-solver
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "cert-manager-webhook-sotoon.name" . }}
+    chart: {{ include "cert-manager-webhook-sotoon.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 rules:
@@ -70,19 +71,19 @@ rules:
     verbs:
       - 'create'
 ---
-apiVersion: rbac.authorization.k8s.io/v1
+apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "example-webhook.fullname" . }}:domain-solver
+  name: {{ include "cert-manager-webhook-sotoon.fullname" . }}:domain-solver
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "cert-manager-webhook-sotoon.name" . }}
+    chart: {{ include "cert-manager-webhook-sotoon.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "example-webhook.fullname" . }}:domain-solver
+  name: {{ include "cert-manager-webhook-sotoon.fullname" . }}:domain-solver
 subjects:
   - apiGroup: ""
     kind: ServiceAccount
