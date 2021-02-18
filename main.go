@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -35,8 +36,6 @@ func main() {
 	if GroupName == "" {
 		panic("GROUP_NAME must be specified")
 	}
-
-	fmt.Println("salaaaam")
 
 	// This will register our custom DNS provider with the webhook serving
 	// library, making it available as an API under the provided GroupName.
@@ -120,7 +119,7 @@ func (c *sotoonDNSProviderSolver) sotoonClient(ch *v1alpha1.ChallengeRequest, cf
 	restConfig.Host = cfg.Endpoint
 	restConfig.APIPath = "/apis"
 	restConfig.BearerToken = apiToken
-	restConfig.ContentConfig.GroupVersion = &v1beta1.GroupVersion
+	restConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: v1beta1.GroupName, Version: v1beta1.GroupVersion}
 	restConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
 	restConfig.UserAgent = rest.DefaultKubernetesUserAgent()
 

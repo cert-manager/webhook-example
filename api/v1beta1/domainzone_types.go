@@ -131,10 +131,6 @@ type DomainZoneList struct {
 	Items           []DomainZone `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&DomainZone{}, &DomainZoneList{})
-}
-
 // Type returns type of the record
 // TODO(ali) SPF, TLSA, CAA, SMIME?, LOC, SSHP
 func (r *Record) Type() string {
