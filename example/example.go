@@ -3,6 +3,8 @@
 package example
 
 import (
+	"fmt"
+	"os"
 	"sync"
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook"
@@ -18,31 +20,36 @@ type exampleSolver struct {
 	sync.RWMutex
 }
 
-func (e exampleSolver) Name() string {
+func (e *exampleSolver) Name() string {
 	return e.name
 }
 
-func (e exampleSolver) Present(ch *acme.ChallengeRequest) error {
+func (e *exampleSolver) Present(ch *acme.ChallengeRequest) error {
 	e.Lock()
 	e.txtRecords[ch.ResolvedFQDN] = ch.Key
 	e.Unlock()
 	return nil
 }
 
-func (e exampleSolver) CleanUp(ch *acme.ChallengeRequest) error {
+func (e *exampleSolver) CleanUp(ch *acme.ChallengeRequest) error {
 	e.Lock()
 	delete(e.txtRecords, ch.ResolvedFQDN)
 	e.Unlock()
 	return nil
 }
 
-func (e exampleSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (e *exampleSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	go func(done <-chan struct{}) {
 		<-done
-		e.server.Shutdown()
+		if err := e.server.Shutdown(); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		}
 	}(stopCh)
 	go func() {
-		e.server.ListenAndServe()
+		if err := e.server.ListenAndServe(); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			os.Exit(1)
+		}
 	}()
 	return nil
 }
