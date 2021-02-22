@@ -13,3 +13,7 @@
 
 # Ignore the built binary
 cert-manager-webhook-example
+
+# Make artifacts
+_out
+_test
