@@ -2,11 +2,12 @@ package example
 
 import (
 	"crypto/rand"
+	"math/big"
+	"testing"
+
 	acme "github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
 func TestExampleSolver_Name(t *testing.T) {
