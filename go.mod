@@ -1,4 +1,4 @@
-module github.com/jetstack/cert-manager-webhook-example
+module github.com/cert-manager/webhook-example
 
 go 1.13
 
