@@ -42,12 +42,12 @@ else they will have undetermined behaviour when used with cert-manager.
 **It is essential that you configure and run the test suite when creating a
 DNS01 webhook.**
 
-An example Go test file has been provided in [main_test.go]().
+An example Go test file has been provided in [main_test.go](https://github.com/jetstack/cert-manager-webhook-example/blob/master/main_test.go).
 
 You can run the test suite with:
 
 ```bash
-$ TEST_ZONE_NAME=example.com go test .
+$ TEST_ZONE_NAME=example.com. make test
 ```
 
 The example file has a number of areas you must fill in and replace with your
