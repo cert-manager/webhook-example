@@ -20,7 +20,7 @@ func TestRunsSuite(t *testing.T) {
 	//
 
 	// Uncomment the below fixture when implementing your custom DNS provider
-	//fixture := dns.NewFixture(&customDNSProviderSolver{},
+	//fixture := dns.NewFixture(&bluecatDNSProviderSolver{},
 	//	dns.SetResolvedZone(zone),
 	//	dns.SetAllowAmbientCredentials(false),
 	//	dns.SetManifestPath("testdata/my-custom-solver"),
