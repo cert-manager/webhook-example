@@ -153,7 +153,65 @@ func (c *bluecatDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error 
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *bluecatDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	// TODO: add code that deletes a record from the DNS provider's console
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+
+	source := util.UnFqdn(ch.ResolvedFQDN)
+
+	err = bluecatLogin(cfg.ServerURL, cfg.Username, cfg.Password, cfg.ConfigName)
+	if err != nil {
+		return err
+	}
+
+	viewID, err := bluecatLookupViewID(cfg.ConfigName)
+	if err != nil {
+		return err
+	}
+
+	parentID, name, err := bluecatLookupParentZoneID(viewID, source)
+	if err != nil {
+		return err
+	}
+
+	queryArgs := map[string]string{
+		"parentId": strconv.FormatUint(uint64(parentID), 10),
+		"name":     name,
+		"type":     "TXTRecord",
+	}
+
+	resp, err := bluecatSendRequest(http.MethodGet, "getEntityByName", nil, queryArgs)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var txtRec entityResponse
+	err = json.NewDecoder(resp.Body).Decode(&txtRec)
+	if err != nil {
+		return fmt.Errorf("bluecat: %w", err)
+	}
+	queryArgs = map[string]string{
+		"objectId": strconv.FormatUint(uint64(txtRec.ID), 10),
+	}
+
+	resp, err = bluecatSendRequest(http.MethodDelete, http.MethodDelete, nil, queryArgs)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	err = bluecatDeploy(parentID)
+	if err != nil {
+		return err
+	}
+
+	err = bluecatLogout()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
