@@ -3,7 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
+	"io/ioutil"
+	"net/http"
 	"os"
+	"strconv"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	//"k8s.io/client-go/kubernetes"
@@ -87,10 +91,58 @@ func (c *bluecatDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error 
 		return err
 	}
 
-	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration %v", cfg)
+	source := util.UnFqdn(ch.ResolvedFQDN)
+	target := ch.Key
 
-	// TODO: add code that sets a record in the DNS provider's console
+	err = bluecatLogin(cfg.ServerURL, cfg.Username, cfg.Password, cfg.ConfigName)
+	if err != nil {
+		return err
+	}
+
+	viewID, err := bluecatLookupViewID(cfg.DNSView)
+	if err != nil {
+		return err
+	}
+
+	parentZoneID, name, err := bluecatLookupParentZoneID(viewID, source)
+	if err != nil {
+		return err
+	}
+
+	queryArgs := map[string]string{
+		"parentId": strconv.FormatUint(uint64(parentZoneID), 10),
+	}
+
+	body := bluecatEntity{
+		Name:       name,
+		Type:       "TXTRecord",
+		Properties: fmt.Sprintf("ttl=300|absoluteName=%s|txt=%s", source, target),
+	}
+
+	resp, err := bluecatSendRequest(http.MethodPost, "addEntity", body, queryArgs)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	addTxtBytes, _ := ioutil.ReadAll(resp.Body)
+	addTxtResp := string(addTxtBytes)
+	// addEntity responds only with body text containing the ID of the created record
+	_, err = strconv.ParseUint(addTxtResp, 10, 64)
+	if err != nil {
+		return fmt.Errorf("bluecat: addEntity request failed: %s", addTxtResp)
+	}
+
+	err = bluecatDeploy(parentZoneID)
+	if err != nil {
+		return err
+	}
+
+	err = bluecatLogout()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
