@@ -30,9 +30,11 @@ var baseURL string
 var token string
 var configName string
 
+// bluecatLogin to be able to talk to the bluecat API, you must login to generate a bluecat API token
 func bluecatLogin(bluecatURL, username, password string, bluecatConfigName string) error {
 	baseURL = bluecatURL
 	configName = bluecatConfigName
+
 	queryArgs := map[string]string{
 		"username": username,
 		"password": password,
@@ -59,6 +61,7 @@ func bluecatLogin(bluecatURL, username, password string, bluecatConfigName strin
 	return nil
 }
 
+// bluecatLogout logout to invoke bluecat API token
 func bluecatLogout() error {
 	if len(token) == 0 {
 		return nil
@@ -90,6 +93,7 @@ func bluecatLogout() error {
 	return nil
 }
 
+// bluecatLookupConfID search configuration by id
 func bluecatLookupConfID() (uint, error) {
 	queryArgs := map[string]string{
 		"parentId": strconv.Itoa(0),
@@ -106,11 +110,12 @@ func bluecatLookupConfID() (uint, error) {
 	var conf entityResponse
 	err = json.NewDecoder(resp.Body).Decode(&conf)
 	if err != nil {
-		return 0, fmt.Errorf("bluecat: %w", err)
+		return 0, fmt.Errorf("bluecat: cannot get entity by name. %w", err)
 	}
 	return conf.ID, nil
 }
 
+// bluecatLookupViewID search view by name
 func bluecatLookupViewID(viewName string) (uint, error) {
 	confID, err := bluecatLookupConfID()
 	if err != nil {
@@ -138,30 +143,34 @@ func bluecatLookupViewID(viewName string) (uint, error) {
 	return view.ID, nil
 }
 
+// bluecatLookupParentZoneID search parent zone id
 func bluecatLookupParentZoneID(viewID uint, fqdn string) (uint, string, error) {
 	parentViewID := viewID
 	name := ""
 
-	if fqdn != "" {
-		zones := strings.Split(strings.Trim(fqdn, "."), ".")
-		last := len(zones) - 1
-		name = zones[0]
+	if fqdn == "" {
+		return parentViewID, name, nil
+	}
 
-		for i := last; i > -1; i-- {
-			zoneID, err := bluecatGetZone(parentViewID, zones[i])
-			if err != nil || zoneID == 0 {
-				return parentViewID, name, err
-			}
-			if i > 0 {
-				name = strings.Join(zones[0:i], ".")
-			}
-			parentViewID = zoneID
+	zones := strings.Split(strings.Trim(fqdn, "."), ".")
+	last := len(zones) - 1
+	name = zones[0]
+
+	for i := last; i > -1; i-- {
+		zoneID, err := bluecatGetZone(parentViewID, zones[i])
+		if err != nil || zoneID == 0 {
+			return parentViewID, name, err
 		}
+		if i > 0 {
+			name = strings.Join(zones[0:i], ".")
+		}
+		parentViewID = zoneID
 	}
 
 	return parentViewID, name, nil
 }
 
+// bluecatGetZone search zone by name
 func bluecatGetZone(parentID uint, name string) (uint, error) {
 	queryArgs := map[string]string{
 		"parentId": strconv.FormatUint(uint64(parentID), 10),
@@ -189,6 +198,7 @@ func bluecatGetZone(parentID uint, name string) (uint, error) {
 	return zone.ID, nil
 }
 
+// bluecatDeploy
 func bluecatDeploy(entityID uint) error {
 	queryArgs := map[string]string{
 		"entityId": strconv.FormatUint(uint64(entityID), 10),
@@ -203,6 +213,7 @@ func bluecatDeploy(entityID uint) error {
 	return nil
 }
 
+// bluecatSendRequest send a API request to bluecat
 func bluecatSendRequest(method, resource string, payload interface{}, queryArgs map[string]string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/Services/REST/v1/%s", baseURL, resource)
 
