@@ -46,3 +46,7 @@ Create chart name and version as used by the chart label.
 {{- define "dnsimple-webhook.servingCertificate" -}}
 {{ printf "%s-webhook-tls" (include "dnsimple-webhook.fullname" .) }}
 {{- end -}}
+
+{{- define "dnsimple-webhook.tokenSecretName" -}}
+{{- default (include "dnsimple-webhook.fullname" .) (.Values.dnsimple.tokenSecretName) -}}
+{{- end -}}

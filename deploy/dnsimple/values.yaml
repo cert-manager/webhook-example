@@ -13,6 +13,9 @@ certManager:
 # logLevel: 3
 dnsimple:
   token: ""
+
+  # existingTokenSecret: false
+  # tokenSecretName:
 clusterIssuer:
   email: name@example.com
   staging:
