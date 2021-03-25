@@ -26,6 +26,8 @@ image:
   repository: neoskop/cert-manager-webhook-dnsimple
   tag: 0.0.5
   pullPolicy: IfNotPresent
+  # pullSecret: "gcr"
+
 nameOverride: ""
 fullnameOverride: ""
 service:
