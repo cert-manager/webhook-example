@@ -13,7 +13,6 @@ certManager:
 # logLevel: 3
 dnsimple:
   token: ""
-
   # existingTokenSecret: false
   # tokenSecretName:
 clusterIssuer:
@@ -24,10 +23,9 @@ clusterIssuer:
     create: false
 image:
   repository: neoskop/cert-manager-webhook-dnsimple
-  tag: 0.0.5
+  tag: 0.1.0
   pullPolicy: IfNotPresent
   # pullSecret: "gcr"
-
 nameOverride: ""
 fullnameOverride: ""
 service:
