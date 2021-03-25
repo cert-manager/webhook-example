@@ -18,7 +18,6 @@ spec:
     - dns01:
         webhook:
           config:
-            account: {{ .Values.dnsimple.account | quote }}
             tokenSecretRef:
               key: token
               name: {{ include "dnsimple-webhook.fullname" . }}

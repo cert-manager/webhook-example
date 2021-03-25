@@ -12,7 +12,6 @@ certManager:
   serviceAccountName: cert-manager
 # logLevel: 3
 dnsimple:
-  account: ""
   token: ""
 clusterIssuer:
   email: name@example.com
