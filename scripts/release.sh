@@ -33,7 +33,7 @@ inc_version() {
   echo "${version_array[0]}.${version_array[1]}.${version_array[2]}"
 }
 
-check_commands git jq yq cr
+check_commands git yq cr
 
 if [[ "$#" != "1" ]] || [[ ! "$1" =~ ^(patch|minor|major)$ ]]; then
   echo -e "Usage: $0 \033[1mpatch|minor|major\033[0m"
@@ -51,7 +51,7 @@ SCRIPT_DIR=$(
 )
 
 git pull --rebase
-current_version=$(yq r $SCRIPT_DIR/../deploy/dnsimple/Chart.yaml version)
+current_version=$(yq e .version $SCRIPT_DIR/../deploy/dnsimple/Chart.yaml)
 version=$(inc_version $current_version $1)
 cd $SCRIPT_DIR/..
 docker build -t neoskop/cert-manager-webhook-dnsimple:$version .
@@ -59,9 +59,10 @@ docker push neoskop/cert-manager-webhook-dnsimple:$version
 cd - &>/dev/null
 sed -i "s/appVersion: .*/appVersion: \"$version\"/" $SCRIPT_DIR/../deploy/dnsimple/Chart.yaml
 sed -i "s/version: .*/version: $version/" $SCRIPT_DIR/../deploy/dnsimple/Chart.yaml
-yq w -i $SCRIPT_DIR/../deploy/dnsimple/Chart.yaml version $version
-yq w -i $SCRIPT_DIR/../deploy/dnsimple/Chart.yaml appVersion $version
-yq w -i $SCRIPT_DIR/../deploy/dnsimple/values.yaml image.tag $version
+
+yq e ".version=\"$version\"" -i  $SCRIPT_DIR/../deploy/dnsimple/Chart.yaml
+yq e ".appVersion=\"$version\"" -i  $SCRIPT_DIR/../deploy/dnsimple/Chart.yaml
+yq e ".image.tag=\"$version\"" -i  $SCRIPT_DIR/../deploy/dnsimple/values.yaml
 git add .
 git commit -m "chore: Bump version to ${version}."
 git push
