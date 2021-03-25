@@ -77,7 +77,8 @@ Then set-up `testdata/dnsimple/config.json` and `testdata/dnsimple/dnsimple-toke
 Execute the test suite replacing `TEST_ZONE_NAME` with a DNS name you have control over with your DNSimple account:
 
 ```bash
-$ TEST_ZONE_NAME=example.com go test .
+# Mind the trailing dot in the TEST_ZONE_NAME value
+$ TEST_ZONE_NAME=example.com. go test .
 ```
 
 ## Release
