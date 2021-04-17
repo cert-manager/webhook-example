@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
@@ -82,7 +81,7 @@ type sotoonDNSProviderConfig struct {
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
 	Endpoint          string                   `json:"endpoint" validate:"url"`
-	Namespace         string                   `json:"namespace" validate:"hostname_rfc1123"`
+	Namespace         string                   `json:"namespace" validate:"omitempty,hostname_rfc1123"`
 	APITokenSecretRef corev1.SecretKeySelector `json:"apiTokenSecretRef"`
 }
 
@@ -233,7 +232,7 @@ func removeTXTRecord(sotoonClient *rest.RESTClient, zone *v1beta1.DomainZone, su
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
 func (c *sotoonDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
-	cfg, err := loadConfig(ch.Config)
+	cfg, err := loadConfig(ch)
 	if err != nil {
 		return err
 	}
@@ -268,7 +267,7 @@ func (c *sotoonDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *sotoonDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	cfg, err := loadConfig(ch.Config)
+	cfg, err := loadConfig(ch)
 	if err != nil {
 		return err
 	}
@@ -319,7 +318,9 @@ func (c *sotoonDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stop
 
 // loadConfig is a small helper function that decodes JSON configuration into
 // the typed config struct.
-func loadConfig(cfgJSON *extapi.JSON) (*sotoonDNSProviderConfig, error) {
+func loadConfig(ch *v1alpha1.ChallengeRequest) (*sotoonDNSProviderConfig, error) {
+	cfgJSON := ch.Config
+
 	cfg := &sotoonDNSProviderConfig{}
 	// handle the 'base case' where no configuration has been provided
 	if cfgJSON == nil {
@@ -332,6 +333,10 @@ func loadConfig(cfgJSON *extapi.JSON) (*sotoonDNSProviderConfig, error) {
 
 	if err := cfg.validate(); err != nil {
 		return nil, err
+	}
+
+	if cfg.Namespace == "" {
+		cfg.Namespace = ch.ResourceNamespace
 	}
 
 	return cfg, nil
