@@ -18,9 +18,9 @@ dnsimple:
 clusterIssuer:
   email: name@example.com
   staging:
-    enabled : false
+    enabled: false
   production:
-    enabled : false
+    enabled: false
 image:
   repository: neoskop/cert-manager-webhook-dnsimple
   tag: 0.1.0
