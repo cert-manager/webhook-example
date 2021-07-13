@@ -11,6 +11,8 @@ import (
 
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
+
+	"github.com/joeig/go-powerdns/v2"
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
@@ -42,6 +44,7 @@ type customDNSProviderSolver struct {
 	// 4. ensure your webhook's service account has the required RBAC role
 	//    assigned to it for interacting with the Kubernetes APIs you need.
 	//client kubernetes.Clientset
+	pdns *powerdns.Client
 }
 
 // customDNSProviderConfig is a structure that is used to decode into when
@@ -66,6 +69,10 @@ type customDNSProviderConfig struct {
 
 	//Email           string `json:"email"`
 	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
+
+	APIKey string `json:"apikey"` //Api Key TODO: make this a secret ref and do a api get
+	Server string `json:"server"` //Server Address
+
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -75,7 +82,7 @@ type customDNSProviderConfig struct {
 // within a single webhook deployment**.
 // For example, `cloudflare` may be used as the name of a solver.
 func (c *customDNSProviderSolver) Name() string {
-	return "my-custom-solver"
+	return "powerdns"
 }
 
 // Present is responsible for actually presenting the DNS record with the
@@ -92,7 +99,16 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	// TODO: do something more useful with the decoded configuration
 	fmt.Printf("Decoded configuration %v", cfg)
 
-	// TODO: add code that sets a record in the DNS provider's console
+	//TODO: get a client using a secret + kubeapi
+	c.pdns = powerdns.NewClient(cfg.Server, "", map[string]string{"X-API-Key": cfg.APIKey}, nil)
+
+	if ch.Action == v1alpha1.ChallengeActionPresent {
+		//Add: zone, record, type, ttl, value
+		c.pdns.Records.Add(ch.ResolvedZone, ch.ResolvedFQDN, powerdns.RRTypeTXT, 10, []string{ch.Key})
+	} else {
+		c.pdns.Records.Delete(ch.ResolvedZone, ch.ResolvedFQDN, powerdns.RRTypeTXT)
+	}
+
 	return nil
 }
 
