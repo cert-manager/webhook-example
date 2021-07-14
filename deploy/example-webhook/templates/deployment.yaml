@@ -27,23 +27,24 @@ spec:
           args:
             - --tls-cert-file=/tls/tls.crt
             - --tls-private-key-file=/tls/tls.key
+            - --secure-port=8043
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}
           ports:
             - name: https
-              containerPort: 443
+              containerPort: 8043
               protocol: TCP
           livenessProbe:
             httpGet:
               scheme: HTTPS
               path: /healthz
-              port: https
+              port: 8043
           readinessProbe:
             httpGet:
               scheme: HTTPS
               path: /healthz
-              port: https
+              port: 8043
           volumeMounts:
             - name: certs
               mountPath: /tls

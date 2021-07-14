@@ -13,7 +13,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: mycompany/webhook-image
+  repository: quay.io/tidawson/pdns-webhook
   tag: latest
   pullPolicy: IfNotPresent
 
