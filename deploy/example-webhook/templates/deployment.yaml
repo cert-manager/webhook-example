@@ -28,6 +28,8 @@ spec:
             - --tls-cert-file=/tls/tls.crt
             - --tls-private-key-file=/tls/tls.key
             - --secure-port=8043
+            - --audit-log-path=-
+            - -v=5
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}

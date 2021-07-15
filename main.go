@@ -97,16 +97,15 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	}
 
 	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration %v", cfg)
+	fmt.Printf("Decoded configuration Key: %s, Server: %s\n", cfg.APIKey, cfg.Server)
+	fmt.Printf("Presenting Record zone: %s, fqdn: %s, key: %s\n", ch.ResolvedZone, ch.ResolvedFQDN, ch.Key)
 
 	//TODO: get a client using a secret + kubeapi
 	c.pdns = powerdns.NewClient(cfg.Server, "", map[string]string{"X-API-Key": cfg.APIKey}, nil)
-
-	if ch.Action == v1alpha1.ChallengeActionPresent {
-		//Add: zone, record, type, ttl, value
-		c.pdns.Records.Add(ch.ResolvedZone, ch.ResolvedFQDN, powerdns.RRTypeTXT, 10, []string{ch.Key})
-	} else {
-		c.pdns.Records.Delete(ch.ResolvedZone, ch.ResolvedFQDN, powerdns.RRTypeTXT)
+	err = c.pdns.Records.Add(ch.ResolvedZone, ch.ResolvedFQDN, powerdns.RRTypeTXT, 10, []string{fmt.Sprintf(`"%s"`, ch.Key)})
+	if err != nil {
+		fmt.Printf("Error Adding Record: %v\n", err)
+		return err
 	}
 
 	return nil
@@ -119,7 +118,20 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	// TODO: add code that deletes a record from the DNS provider's console
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+
+	//TODO: get a client using a secret + kubeapi
+	c.pdns = powerdns.NewClient(cfg.Server, "", map[string]string{"X-API-Key": cfg.APIKey}, nil)
+
+	//TODO: check value before delete. for parrallel validation
+	err = c.pdns.Records.Delete(ch.ResolvedZone, ch.ResolvedFQDN, powerdns.RRTypeTXT)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
