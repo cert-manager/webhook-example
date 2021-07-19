@@ -13,7 +13,7 @@ jobs:
           MYSQL_USER: root
           MYSQL_PASS: supersecret
           MYSQL_PORT: "3306"
-          MYSQL_HOST: localhost
+          MYSQL_HOST: "127.0.0.1"
         command:
           - "--webserver=yes"
           - "--api=yes"
