@@ -1,0 +1,273 @@
+---
+# Source: pdns-webhook/templates/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pdns-webhook
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+---
+# Source: pdns-webhook/templates/rbac.yaml
+# Grant cert-manager permission to validate using our apiserver
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pdns-webhook:domain-solver
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+rules:
+  - apiGroups:
+      - acme.powerdns.com
+    resources:
+      - '*'
+    verbs:
+      - 'create'
+---
+# Source: pdns-webhook/templates/rbac.yaml
+# apiserver gets the auth-delegator role to delegate auth decisions to
+# the core apiserver
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pdns-webhook:auth-delegator
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: pdns-webhook
+    namespace: cert-manager
+---
+# Source: pdns-webhook/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pdns-webhook:domain-solver
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pdns-webhook:domain-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: cert-manager
+    namespace: cert-manager
+---
+# Source: pdns-webhook/templates/rbac.yaml
+# Grant the webhook permission to read the ConfigMap containing the Kubernetes
+# apiserver's requestheader-ca-certificate.
+# This ConfigMap is automatically created by the Kubernetes apiserver.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pdns-webhook:webhook-authentication-reader
+  namespace: kube-system
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: pdns-webhook
+    namespace: cert-manager
+---
+# Source: pdns-webhook/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: pdns-webhook
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 443
+      targetPort: 8043
+      protocol: TCP
+      name: https
+  selector:
+    app: pdns-webhook
+    release: pdns-webhook
+---
+# Source: pdns-webhook/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdns-webhook
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+spec:
+  replicas: 
+  selector:
+    matchLabels:
+      app: pdns-webhook
+      release: pdns-webhook
+  template:
+    metadata:
+      labels:
+        app: pdns-webhook
+        release: pdns-webhook
+    spec:
+      serviceAccountName: pdns-webhook
+      containers:
+        - name: pdns-webhook
+          image: "quay.io/tidawson/pdns-webhook:latest"
+          imagePullPolicy: Always
+          args:
+            - --tls-cert-file=/tls/tls.crt
+            - --tls-private-key-file=/tls/tls.key
+            - --secure-port=8043
+            - --audit-log-path=-
+            - -v=5
+          env:
+            - name: GROUP_NAME
+              value: "acme.powerdns.com"
+          ports:
+            - name: https
+              containerPort: 8043
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: 8043
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: 8043
+          volumeMounts:
+            - name: certs
+              mountPath: /tls
+              readOnly: true
+          resources:
+            {}
+      volumes:
+        - name: certs
+          secret:
+            secretName: pdns-webhook-webhook-tls
+---
+# Source: pdns-webhook/templates/apiservice.yaml
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.acme.powerdns.com
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+  annotations:
+    cert-manager.io/inject-ca-from: "cert-manager/pdns-webhook-webhook-tls"
+spec:
+  group: acme.powerdns.com
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  service:
+    name: pdns-webhook
+    namespace: cert-manager
+  version: v1alpha1
+---
+# Source: pdns-webhook/templates/pki.yaml
+# Generate a CA Certificate used to sign certificates for the webhook
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pdns-webhook-ca
+  namespace: "cert-manager"
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+spec:
+  secretName: pdns-webhook-ca
+  duration: 43800h # 5y
+  issuerRef:
+    name: pdns-webhook-selfsign
+  commonName: "ca.example-webhook.cert-manager"
+  isCA: true
+---
+# Source: pdns-webhook/templates/pki.yaml
+# Finally, generate a serving certificate for the webhook to use
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pdns-webhook-webhook-tls
+  namespace: "cert-manager"
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+spec:
+  secretName: pdns-webhook-webhook-tls
+  duration: 8760h # 1y
+  issuerRef:
+    name: pdns-webhook-ca
+  dnsNames:
+  - pdns-webhook
+  - pdns-webhook.cert-manager
+  - pdns-webhook.cert-manager.svc
+---
+# Source: pdns-webhook/templates/pki.yaml
+# Create a selfsigned Issuer, in order to create a root CA certificate for
+# signing webhook serving certificates
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: pdns-webhook-selfsign
+  namespace: "cert-manager"
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+spec:
+  selfSigned: {}
+---
+# Source: pdns-webhook/templates/pki.yaml
+# Create an Issuer that uses the above generated CA certificate to issue certs
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: pdns-webhook-ca
+  namespace: "cert-manager"
+  labels:
+    app: pdns-webhook
+    chart: pdns-webhook-0.1.0
+    release: pdns-webhook
+    heritage: Helm
+spec:
+  ca:
+    secretName: pdns-webhook-ca
