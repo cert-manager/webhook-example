@@ -1,1 +1,4 @@
-{}
+{
+  "server" : "http://localhost:8080",
+  "apikey" : "password"
+}

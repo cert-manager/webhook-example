@@ -1,4 +1,4 @@
-module github.com/cert-manager/webhook-example
+module github.com/Timdawson264/cert-manager-pdns
 
 go 1.13
 

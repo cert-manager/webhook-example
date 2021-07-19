@@ -44,7 +44,6 @@ type customDNSProviderSolver struct {
 	// 4. ensure your webhook's service account has the required RBAC role
 	//    assigned to it for interacting with the Kubernetes APIs you need.
 	//client kubernetes.Clientset
-	pdns *powerdns.Client
 }
 
 // customDNSProviderConfig is a structure that is used to decode into when
@@ -97,14 +96,42 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	}
 
 	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration Key: %s, Server: %s\n", cfg.APIKey, cfg.Server)
+	//fmt.Printf("Decoded configuration Key: %s, Server: %s\n", cfg.APIKey, cfg.Server)
 	fmt.Printf("Presenting Record zone: %s, fqdn: %s, key: %s\n", ch.ResolvedZone, ch.ResolvedFQDN, ch.Key)
 
 	//TODO: get a client using a secret + kubeapi
-	c.pdns = powerdns.NewClient(cfg.Server, "", map[string]string{"X-API-Key": cfg.APIKey}, nil)
-	err = c.pdns.Records.Add(ch.ResolvedZone, ch.ResolvedFQDN, powerdns.RRTypeTXT, 10, []string{fmt.Sprintf(`"%s"`, ch.Key)})
+	pdns := powerdns.NewClient(cfg.Server, "", map[string]string{"X-API-Key": cfg.APIKey}, nil)
+
+	//First Request RRSet and check if key+value exists. else add and set as new rrset.
+	zone, err := pdns.Zones.Get(ch.ResolvedZone)
 	if err != nil {
-		fmt.Printf("Error Adding Record: %v\n", err)
+		fmt.Printf("Error Getting Zone: %v\n", err)
+		return err
+	}
+
+	existing_keys := []string{}
+
+	//Try find an Exsisting RRset - and record all the values.
+	for _, r := range zone.RRsets {
+
+		if *r.Name == ch.ResolvedFQDN && *r.Type == powerdns.RRTypeTXT {
+			//check if the Record is already in the RRSET
+			for _, record := range r.Records {
+				if *record.Content == fmt.Sprintf(`"%s"`, ch.Key) {
+					fmt.Printf("Challange Already in TXT Record. \n")
+					return nil
+				}
+				existing_keys = append(existing_keys, *record.Content)
+			}
+
+		}
+	}
+
+	//Add the new key
+	existing_keys = append(existing_keys, fmt.Sprintf(`"%s"`, ch.Key))
+	err = pdns.Records.Change(ch.ResolvedZone, ch.ResolvedFQDN, powerdns.RRTypeTXT, 15, existing_keys)
+	if err != nil {
+		fmt.Printf("Error Adding Record: %+v\n", err)
 		return err
 	}
 
@@ -124,11 +151,31 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	}
 
 	//TODO: get a client using a secret + kubeapi
-	c.pdns = powerdns.NewClient(cfg.Server, "", map[string]string{"X-API-Key": cfg.APIKey}, nil)
-
-	//TODO: check value before delete. for parrallel validation
-	err = c.pdns.Records.Delete(ch.ResolvedZone, ch.ResolvedFQDN, powerdns.RRTypeTXT)
+	pdns := powerdns.NewClient(cfg.Server, "", map[string]string{"X-API-Key": cfg.APIKey}, nil)
+	zone, err := pdns.Zones.Get(ch.ResolvedZone)
 	if err != nil {
+		fmt.Printf("Error Getting Zone: %v\n", err)
+		return err
+	}
+
+	remaining_keys := []string{}
+
+	//Make a list of keys that should remain after this cleanup
+	for _, r := range zone.RRsets {
+		if *r.Name == ch.ResolvedFQDN && *r.Type == powerdns.RRTypeTXT {
+			for _, record := range r.Records {
+				//Remove the matching key
+				if *record.Content != fmt.Sprintf(`"%s"`, ch.Key) {
+					remaining_keys = append(remaining_keys, *record.Content)
+				}
+			}
+
+		}
+	}
+
+	err = pdns.Records.Change(ch.ResolvedZone, ch.ResolvedFQDN, powerdns.RRTypeTXT, 15, remaining_keys)
+	if err != nil {
+		fmt.Printf("Error Removing Record: %v\n", err)
 		return err
 	}
 
