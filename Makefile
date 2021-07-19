@@ -35,4 +35,4 @@ rendered-manifest.yaml:
 	pdns-webhook \
         --set image.repository=$(IMAGE_NAME) \
         --set image.tag=$(IMAGE_TAG) \
-        deploy/example-webhook > "$(OUT)/rendered-manifest.yaml"
+        deploy/pdns-webhook > "$(OUT)/rendered-manifest.yaml"
