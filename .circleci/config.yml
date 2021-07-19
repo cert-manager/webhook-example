@@ -49,3 +49,8 @@ jobs:
             env TEST_ZONE_NAME=example.com. gotestsum --junitfile /tmp/test-reports/unit-tests.xml
       - store_test_results:
           path: /tmp/test-reports
+
+workflows:
+  test_publish:
+    jobs:
+      - test
