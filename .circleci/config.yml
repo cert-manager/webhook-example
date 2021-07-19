@@ -5,6 +5,26 @@ jobs:
     working_directory: ~/repo
     docker:
       - image: circleci/golang:1.16
+      - image: mariadb:10.1
+        environment:
+          MYSQL_ROOT_PASSWORD: supersecret
+      - image: psitrax/powerdns
+        environment:
+          MYSQL_USER: root
+          MYSQL_PASS: supersecret
+          MYSQL_PORT: "3306"
+        command:
+          - "--webserver=yes"
+          - "--api=yes"
+          - "--api-key=password"
+          - "--webserver-port=8080"
+          - "--webserver-loglevel=detailed"
+          - "--loglevel=10"
+          - "--log-dns-queries=yes"
+          - "--master"
+          - "--disable-syslog"
+          - "--webserver-address=0.0.0.0"
+          - "--webserver-allow-from=0.0.0.0/0"
     steps:
       - checkout
       - restore_cache:
