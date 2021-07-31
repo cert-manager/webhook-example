@@ -1,5 +1,5 @@
 package internal
 
 type Config struct {
-	ApiKey, ZoneName, ApiUrl string
+	ApiKey, ZoneName, ServerName, ApiUrl string
 }

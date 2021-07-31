@@ -6,15 +6,15 @@
 # solve the DNS01 challenge.
 # This group name should be **unique**, hence using your own company's domain
 # here is recommended.
-groupName: acme.mycompany.com
+groupName: acme.stadtmueller.at
 
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
 
 image:
-  repository: mycompany/webhook-image
-  tag: latest
+  repository: vstadtmueller/cert-manager-webhook-powerdns
+  tag: dev
   pullPolicy: IfNotPresent
 
 nameOverride: ""
@@ -23,6 +23,9 @@ fullnameOverride: ""
 service:
   type: ClusterIP
   port: 443
+
+secretName:
+  - pdns-secret
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
