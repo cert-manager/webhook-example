@@ -1,8 +1,10 @@
 OS ?= $(shell go env GOOS)
 ARCH ?= $(shell go env GOARCH)
 
-IMAGE_NAME := "webhook"
-IMAGE_TAG := "latest"
+GCP_PROJECT ?= pluralsh
+IMAGE_NAME := "plural-certmanager-webhook"
+IMAGE_TAG := "0.1.0"
+DKR_HOST ?= dkr.plural.sh
 
 OUT := $(shell pwd)/_out
 
@@ -27,7 +29,12 @@ clean-kubebuilder:
 	rm -Rf _test/kubebuilder
 
 build:
-	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
+	docker build -t gcr.io/$(GCP_PROJECT)/$(IMAGE_NAME):$(IMAGE_TAG) \
+			         -t $(DKR_HOST)/bootstrap/$(IMAGE_NAME):$(IMAGE_TAG) .
+
+push:
+	docker push gcr.io/$(GCP_PROJECT)/$(IMAGE_NAME):$(IMAGE_TAG)
+	docker push $(DKR_HOST)/bootstrap/$(IMAGE_NAME):$(IMAGE_TAG)
 
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:
