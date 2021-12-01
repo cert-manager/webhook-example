@@ -1,3 +1,4 @@
+{{- $RBACAPIVersion := ternary "rbac.authorization.k8s.io/v1" "rbac.authorization.k8s.io/v1beta1" (.Capabilities.APIVersions.Has "rbac.authorization.k8s.io/v1") -}}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -11,7 +12,7 @@ metadata:
 # Grant the webhook permission to read the ConfigMap containing the Kubernetes
 # apiserver's requestheader-ca-certificate.
 # This ConfigMap is automatically created by the Kubernetes apiserver.
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: {{ $RBACAPIVersion }}
 kind: RoleBinding
 metadata:
   name: {{ include "dnsimple-webhook.fullname" . }}:webhook-authentication-reader
@@ -33,7 +34,7 @@ subjects:
 ---
 # apiserver gets the auth-delegator role to delegate auth decisions to
 # the core apiserver
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: {{ $RBACAPIVersion }}
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "dnsimple-webhook.fullname" . }}:auth-delegator
@@ -53,7 +54,7 @@ subjects:
     namespace: {{ .Release.Namespace }}
 ---
 # Grant cert-manager permission to validate using our apiserver
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: {{ $RBACAPIVersion }}
 kind: ClusterRole
 metadata:
   name: {{ include "dnsimple-webhook.fullname" . }}:domain-solver
@@ -70,7 +71,7 @@ rules:
     verbs:
       - 'create'
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: {{ $RBACAPIVersion }}
 kind: ClusterRoleBinding
 metadata:
   name: {{ include "dnsimple-webhook.fullname" . }}:domain-solver
