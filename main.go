@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 
-	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	//"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -133,7 +133,7 @@ func (c *customDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stop
 
 // loadConfig is a small helper function that decodes JSON configuration into
 // the typed config struct.
-func loadConfig(cfgJSON *extapi.JSON) (customDNSProviderConfig, error) {
+func loadConfig(cfgJSON *v1.JSON) (customDNSProviderConfig, error) {
 	cfg := customDNSProviderConfig{}
 	// handle the 'base case' where no configuration has been provided
 	if cfgJSON == nil {
