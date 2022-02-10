@@ -11,6 +11,7 @@ KUBE_VERSION=1.21.2
 $(shell mkdir -p "$(OUT)")
 export TEST_ASSET_ETCD=_test/kubebuilder/bin/etcd
 export TEST_ASSET_KUBE_APISERVER=_test/kubebuilder/bin/kube-apiserver
+export TEST_ASSET_KUBECTL=_test/kubebuilder/bin/kubectl
 
 test: _test/kubebuilder
 	go test -v .
