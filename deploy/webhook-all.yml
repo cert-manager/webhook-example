@@ -1,0 +1,325 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook
+  namespace: cert-manager
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gcore-webhook
+subjects:
+  - kind: ServiceAccount
+    name: gcore-webhook
+    namespace: cert-manager
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook:webhook-authentication-reader
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+- kind: ServiceAccount
+  name: gcore-webhook
+  namespace: cert-manager
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook:domain-solver
+rules:
+- apiGroups:
+  - acme.mycompany.com
+  resources:
+  - '*'
+  verbs:
+  - create
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook:auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: gcore-webhook
+  namespace: cert-manager
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook:domain-solver
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gcore-webhook:domain-solver
+subjects:
+- kind: ServiceAccount
+  name: cert-manager
+  namespace: cert-manager
+---
+# Grant cert-manager-webhook-gcore permission to read the flow control mechanism (APF)
+# API Priority and Fairness is enabled by default in Kubernetes 1.20
+# https://kubernetes.io/docs/concepts/cluster-administration/flow-control/
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gcore-webhook:flowcontrol-solver
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+rules:
+  - apiGroups:
+      - "flowcontrol.apiserver.k8s.io"
+    resources:
+      - "prioritylevelconfigurations"
+      - "flowschemas"
+    verbs:
+      - "list"
+      - "watch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gcore-webhook:flowcontrol-solver
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gcore-webhook:flowcontrol-solver
+subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: gcore-webhook
+    namespace: cert-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook
+  namespace: cert-manager
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
+  selector:
+    app.kubernetes.io/name: gcore-webhook
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook-ca
+  namespace: cert-manager
+spec:
+  ca:
+    secretName: gcore-webhook-ca
+
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook-selfsign
+  namespace: cert-manager
+spec:
+  selfSigned: {}
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook-ca
+  namespace: cert-manager
+spec:
+  commonName: ca.gcore-webhook.cert-manager
+  duration: 43800h0m0s
+  isCA: true
+  issuerRef:
+    name: gcore-webhook-selfsign
+  secretName: gcore-webhook-ca
+
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook-webhook-tls
+  namespace: cert-manager
+spec:
+  dnsNames:
+  - gcore-webhook
+  - gcore-webhook.cert-manager
+  - gcore-webhook.cert-manager.svc
+  duration: 8760h0m0s
+  issuerRef:
+    name: gcore-webhook-ca
+  secretName: gcore-webhook-webhook-tls
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: gcore-webhook
+  namespace: cert-manager
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gcore-webhook
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/instance: gcore-webhook
+        app.kubernetes.io/name: gcore-webhook
+    spec:
+      containers:
+      - args:
+        - --tls-cert-file=/tls/tls.crt
+        - --tls-private-key-file=/tls/tls.key
+        env:
+        - name: GROUP_NAME
+          value: acme.mycompany.com
+        image: ghcr.io/g-core/cert-manager-webhook-gcore:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: gcore-webhook
+        ports:
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /tls
+          name: certs
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: gcore-webhook
+      serviceAccountName: gcore-webhook
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: certs
+        secret:
+          defaultMode: 420
+          secretName: gcore-webhook-webhook-tls
+
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: cert-manager/gcore-webhook-webhook-tls
+  labels:
+    app.kubernetes.io/name: gcore-webhook
+    app.kubernetes.io/version: 0.1.1
+  name: v1alpha1.acme.mycompany.com
+spec:
+  group: acme.mycompany.com
+  groupPriorityMinimum: 1000
+  service:
+    name: gcore-webhook
+    namespace: cert-manager
+  version: v1alpha1
+  versionPriority: 15

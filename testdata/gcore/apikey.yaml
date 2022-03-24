@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gcore-api-token
+type: Opaque
+stringData:
+  token: 388$8411fec642b1a6b33882fd828ebccc40...

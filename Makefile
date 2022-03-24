@@ -1,7 +1,7 @@
 OS ?= $(shell go env GOOS)
 ARCH ?= $(shell go env GOARCH)
 
-IMAGE_NAME := "webhook"
+IMAGE_NAME := "ghcr.io/g-core/cert-manager-webhook-gcore"
 IMAGE_TAG := "latest"
 
 OUT := $(shell pwd)/_out
@@ -9,12 +9,18 @@ OUT := $(shell pwd)/_out
 KUBE_VERSION=1.21.2
 
 $(shell mkdir -p "$(OUT)")
-export TEST_ASSET_ETCD=_test/kubebuilder/bin/etcd
-export TEST_ASSET_KUBE_APISERVER=_test/kubebuilder/bin/kube-apiserver
-export TEST_ASSET_KUBECTL=_test/kubebuilder/bin/kubectl
 
-test: _test/kubebuilder
-	go test -v .
+clean:
+	rm -Rf $(OUT)/kubebuilder
+
+install-tools:
+	sh ./scripts/fetch-test-binaries.sh
+
+test: clean install-tools _test/kubebuilder
+	TEST_ASSET_ETCD=_test/kubebuilder/bin/etcd \
+    	TEST_ASSET_KUBE_APISERVER=_test/kubebuilder/bin/kube-apiserver \
+    	TEST_ASSET_KUBECTL=_test/kubebuilder/bin/kubectl \
+    	go test -v .
 
 _test/kubebuilder:
 	curl -fsSL https://go.kubebuilder.io/test-tools/$(KUBE_VERSION)/$(OS)/$(ARCH) -o kubebuilder-tools.tar.gz
@@ -31,6 +37,9 @@ clean-kubebuilder:
 
 build:
 	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
+
+push:
+	docker push "$(IMAGE_NAME):$(IMAGE_TAG)"
 
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:

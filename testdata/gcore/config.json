@@ -1,0 +1,7 @@
+{
+    "apiKeySecretRef": {
+        "name": "gcore-api-token",
+        "key": "token"
+    },
+    "ttl": 60
+}

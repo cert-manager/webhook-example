@@ -1,0 +1,64 @@
+---
+# Create a selfsigned Issuer, in order to create a root CA certificate for
+# signing webhook serving certificates
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "gcore-webhook.selfSignedIssuer" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "gcore-webhook.labels" . | indent 4 }}
+spec:
+  selfSigned: {}
+
+---
+
+# Generate a CA Certificate used to sign certificates for the webhook
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "gcore-webhook.rootCACertificate" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "gcore-webhook.labels" . | indent 4 }}
+spec:
+  secretName: {{ include "gcore-webhook.rootCACertificate" . }}
+  duration: 43800h # 5y
+  issuerRef:
+    name: {{ include "gcore-webhook.selfSignedIssuer" . }}
+  commonName: "ca.gcore-webhook.cert-manager"
+  isCA: true
+
+---
+
+# Create an Issuer that uses the above generated CA certificate to issue certs
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "gcore-webhook.rootCAIssuer" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "gcore-webhook.labels" . | indent 4 }}
+spec:
+  ca:
+    secretName: {{ include "gcore-webhook.rootCACertificate" . }}
+
+---
+
+# Finally, generate a serving certificate for the webhook to use
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "gcore-webhook.servingCertificate" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+{{ include "gcore-webhook.labels" . | indent 4 }}
+spec:
+  secretName: {{ include "gcore-webhook.servingCertificate" . }}
+  duration: 8760h # 1y
+  issuerRef:
+    name: {{ include "gcore-webhook.rootCAIssuer" . }}
+  dnsNames:
+  - {{ include "gcore-webhook.fullname" . }}
+  - {{ include "gcore-webhook.fullname" . }}.{{ .Release.Namespace }}
+  - {{ include "gcore-webhook.fullname" . }}.{{ .Release.Namespace }}.svc

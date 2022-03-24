@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "gcore-webhook.fullname" . }}
+  labels:
+{{ include "gcore-webhook.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: https
+      protocol: TCP
+      name: https
+  selector:
+    app.kubernetes.io/name: {{ include "gcore-webhook.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
