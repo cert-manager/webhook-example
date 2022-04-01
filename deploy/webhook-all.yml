@@ -69,7 +69,7 @@ metadata:
   name: gcore-webhook:domain-solver
 rules:
 - apiGroups:
-  - acme.mycompany.com
+  - acme.gcore.com
   resources:
   - '*'
   verbs:
@@ -259,7 +259,7 @@ spec:
         - --tls-private-key-file=/tls/tls.key
         env:
         - name: GROUP_NAME
-          value: acme.mycompany.com
+          value: acme.gcore.com
         image: ghcr.io/g-core/cert-manager-webhook-gcore:latest
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -314,9 +314,9 @@ metadata:
   labels:
     app.kubernetes.io/name: gcore-webhook
     app.kubernetes.io/version: 0.1.1
-  name: v1alpha1.acme.mycompany.com
+  name: v1alpha1.acme.gcore.com
 spec:
-  group: acme.mycompany.com
+  group: acme.gcore.com
   groupPriorityMinimum: 1000
   service:
     name: gcore-webhook

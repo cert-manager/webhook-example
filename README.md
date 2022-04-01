@@ -27,7 +27,9 @@ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6
 
 - Install next the helm chart if [helm v3 is deployed](https://helm.sh/docs/intro/install/) on your machine
 ```bash
-helm install -n cert-manager gcore-webhook ./deploy/helm
+git clone https://github.com/G-Core/cert-manager-webhook-gcore.git
+cd cert-manager-webhook-gcore
+helm install -n cert-manager gcore-webhook --set groupName='<YOUR_GROUP_NAME>' ./deploy/helm
 ```
 **NOTE**: The kubernetes resources used to install the Webhook should be deployed within the same namespace as the cert-manager.
 
@@ -108,7 +110,7 @@ spec:
               key: token
             production: true
             ttl: 600
-          groupName: acme.mycompany.com
+          groupName: <YOUR_GROUP_NAME> # Use the groupName defined above
           solverName: gcore
 EOF
 ```
