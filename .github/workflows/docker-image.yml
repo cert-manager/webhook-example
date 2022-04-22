@@ -1,0 +1,20 @@
+name: Docker Image CI
+
+on:
+  push:
+    tags:
+     - 'v*.*.*'
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag ghcr.io/g-core/cert-manager-webhook-gcore:latest
+      
+    - name: Push the Docker image
+      run: docker push ghcr.io/g-core/cert-manager-webhook-gcore:latest
