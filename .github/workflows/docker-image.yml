@@ -13,8 +13,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Build the Docker image
       run: docker build . --file Dockerfile --tag ghcr.io/g-core/cert-manager-webhook-gcore:latest
-      
+
+    - name: Log in to registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+
+
     - name: Push the Docker image
       run: docker push ghcr.io/g-core/cert-manager-webhook-gcore:latest
