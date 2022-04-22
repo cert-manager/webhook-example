@@ -11,7 +11,7 @@ require (
 )
 
 require (
-	github.com/G-Core/gcore-dns-sdk-go v0.2.0
+	github.com/G-Core/gcore-dns-sdk-go v0.2.2
 	k8s.io/apimachinery v0.23.1
 )
 
