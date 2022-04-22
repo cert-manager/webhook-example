@@ -18,7 +18,7 @@ jobs:
       run: docker build . --file Dockerfile --tag ghcr.io/g-core/cert-manager-webhook-gcore:latest
 
     - name: Log in to registry
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+      run: echo "${{ secrets.GH_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
 
 
     - name: Push the Docker image
