@@ -7,8 +7,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/jetstack/cert-manager/pkg/acme/webhook"
-	acme "github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook"
+	acme "github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/miekg/dns"
 	"k8s.io/client-go/rest"
 )
