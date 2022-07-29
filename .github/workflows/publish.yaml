@@ -6,9 +6,8 @@ on:
       - 'v*.*.*'
 jobs:
   publish:
-    name: Build and push Console container
+    name: Build and push cert-manager-webhook container
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
     permissions:
       contents: 'read'
       id-token: 'write'
