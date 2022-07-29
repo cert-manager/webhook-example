@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":dependencyDashboard",
+    ":prHourlyLimit4",
+    ":prConcurrentLimit10"
+  ],
+  "packageRules": [
+    {
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": true
+    },
+    {
+      "description": "Disable major update k8s client-go",
+      "matchPackagePatterns": [
+        "^k8s.io/client-go"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    }
+  ],
+  "separateMinorPatch": true,
+  "dependencyDashboardApproval": true
+}
