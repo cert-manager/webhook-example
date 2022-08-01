@@ -3,9 +3,22 @@ package plural
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
-	"github.com/michaeljguarino/graphql"
+
+	"github.com/pluralsh/gqlclient"
+	"github.com/pluralsh/gqlclient/pkg/utils"
 )
+
+type authedTransport struct {
+	key     string
+	wrapped http.RoundTripper
+}
+
+func (t *authedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Authorization", "Bearer "+t.key)
+	return t.wrapped.RoundTrip(req)
+}
 
 type Config struct {
 	Token    string
@@ -15,8 +28,9 @@ type Config struct {
 }
 
 type Client struct {
-	gqlClient *graphql.Client
-	config    *Config
+	ctx          context.Context
+	pluralClient *gqlclient.Client
+	config       *Config
 }
 
 type DnsRecord struct {
@@ -25,83 +39,68 @@ type DnsRecord struct {
 	Records []string
 }
 
-const DnsRecordFragment = `
-	fragment DnsRecord on DnsRecord {
-		type
-		name
-		records
-	}
-`
-
-var createDnsRecord = fmt.Sprintf(`
-	mutation Create($cluster: String!, $provider: Provider!, $attributes: DnsRecordAttributes!) {
-		createDnsRecord(cluster: $cluster, provider: $provider, attributes: $attributes) {
-			...DnsRecord
-		}
-	}
-	%s
-`, DnsRecordFragment)
-
-var deleteDnsRecord = fmt.Sprintf(`
-	mutation Delete($name: String!, $type: DnsRecordType!) {
-		deleteDnsRecord(name: $name, type: $type) {
-			...DnsRecord
-		}
-	}
-	%s
-`, DnsRecordFragment)
-
 func NewConfig(token, endpoint, cluster, provider string) *Config {
 	return &Config{
-		Token: token,
+		Token:    token,
 		Endpoint: endpoint,
-		Cluster: cluster,
+		Cluster:  cluster,
 		Provider: provider,
 	}
 }
 
 func NewClient(conf *Config) *Client {
 	base := conf.BaseUrl()
-	return &Client{graphql.NewClient(base + "/gql"), conf}
+	httpClient := http.Client{
+		Transport: &authedTransport{
+			key:     conf.Token,
+			wrapped: http.DefaultTransport,
+		},
+	}
+	endpoint := base + "/gql"
+	return &Client{
+		ctx:          context.Background(),
+		pluralClient: gqlclient.NewClient(&httpClient, endpoint),
+		config:       conf,
+	}
 }
 
 func (c *Config) BaseUrl() string {
 	host := "https://app.plural.sh"
-	if (c.Endpoint != "") {
+	if c.Endpoint != "" {
 		host = fmt.Sprintf("https://%s", c.Endpoint)
 	}
 	return host
 }
 
-func (client *Client) Build(doc string) *graphql.Request {
-	req := graphql.NewRequest(doc)
-	req.Header.Set("Authorization", "Bearer "+client.config.Token)
-	return req
-}
-
-func (client *Client) Run(req *graphql.Request, resp interface{}) error {
-	return client.gqlClient.Run(context.Background(), req, &resp)
-}
-
-func (client *Client) CreateRecord(record *DnsRecord) (result *DnsRecord, err error) {
-	var resp struct {
-		CreateDnsRecord *DnsRecord
+func (client *Client) CreateRecord(record *DnsRecord) (*DnsRecord, error) {
+	provider := gqlclient.Provider(strings.ToUpper(client.config.Provider))
+	cluster := client.config.Cluster
+	attr := gqlclient.DNSRecordAttributes{
+		Name:    record.Name,
+		Type:    gqlclient.DNSRecordType(record.Type),
+		Records: []*string{},
 	}
-	req := client.Build(createDnsRecord)
-	req.Var("cluster", client.config.Cluster)
-	req.Var("provider", strings.ToUpper(client.config.Provider))
-	req.Var("attributes", record)
-	err = client.Run(req, &resp)
-	result = resp.CreateDnsRecord
-	return
+
+	for _, record := range record.Records {
+		attr.Records = append(attr.Records, &record)
+	}
+
+	resp, err := client.pluralClient.CreateDNSRecord(client.ctx, cluster, provider, attr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DnsRecord{
+		Type:    string(resp.CreateDNSRecord.Type),
+		Name:    resp.CreateDNSRecord.Name,
+		Records: utils.ConvertStringArrayPointer(resp.CreateDNSRecord.Records),
+	}, nil
 }
 
 func (client *Client) DeleteRecord(name, ttype string) error {
-	var resp struct {
-		DeleteDnsRecord *DnsRecord
+	if _, err := client.pluralClient.DeleteDNSRecord(client.ctx, name, gqlclient.DNSRecordType(ttype)); err != nil {
+		return err
 	}
-	req := client.Build(deleteDnsRecord)
-	req.Var("type", ttype)
-	req.Var("name", name)
-	return client.Run(req, &resp)
-} 
+
+	return nil
+}
