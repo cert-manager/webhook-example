@@ -112,7 +112,7 @@ kind: ClusterRole
 metadata:
   name: {{ include "gcore-webhook.fullname" . }}:flowcontrol-solver
   labels:
-  {{ include "gcore-webhook.labels" . | indent 4 }}
+{{ include "gcore-webhook.labels" . | indent 4 }}
 rules:
   - apiGroups:
       - "flowcontrol.apiserver.k8s.io"
@@ -128,7 +128,7 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ include "gcore-webhook.fullname" . }}:flowcontrol-solver
   labels:
-  {{ include "gcore-webhook.labels" . | indent 4 }}
+{{ include "gcore-webhook.labels" . | indent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
