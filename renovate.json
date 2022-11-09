@@ -28,5 +28,6 @@
       "enabled": false
     }
   ],
+  "labels": ["dependencies"],
   "separateMinorPatch": true
 }
