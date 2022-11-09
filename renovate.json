@@ -28,6 +28,5 @@
       "enabled": false
     }
   ],
-  "separateMinorPatch": true,
-  "dependencyDashboardApproval": true
+  "separateMinorPatch": true
 }
