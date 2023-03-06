@@ -3,10 +3,10 @@ name: CI / cert-manager webhook
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main
+      - master
 jobs:
   publish:
     name: Test build and push cert-manager-webhook container
