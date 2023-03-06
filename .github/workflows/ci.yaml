@@ -1,12 +1,15 @@
-name: CD / cert-manager webhook
+name: CI / cert-manager webhook
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 jobs:
   publish:
-    name: Build and push cert-manager-webhook container
+    name: Test build and push cert-manager-webhook container
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -22,30 +25,15 @@ jobs:
         # list of Docker images to use as base name for tags
         images: |
           ghcr.io/pluralsh/plural-certmanager-webhook
-          dkr.plural.sh/bootstrap/plural-certmanager-webhook
-          gcr.io/pluralsh/plural-certmanager-webhook
         # generate Docker tags based on the following events/attributes
         tags: |
-          type=semver,pattern={{version}}
+          type=sha
+          type=ref,event=pr
+          type=ref,event=branch
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-    - uses: google-github-actions/auth@v1
-      with:
-        workload_identity_provider: 'projects/${{ secrets.GOOGLE_PROJECT_ID }}/locations/global/workloadIdentityPools/github/providers/github'
-        service_account: 'terraform@pluralsh.iam.gserviceaccount.com'
-        token_format: 'access_token'
-        create_credentials_file: true
-    - uses: google-github-actions/setup-gcloud@v1.0.0
-    - name: Login to gcr
-      run: gcloud auth configure-docker -q
-    - name: Login to plural registry
-      uses: docker/login-action@v2
-      with:
-        registry: dkr.plural.sh
-        username: mjg@plural.sh
-        password: ${{ secrets.PLURAL_ACCESS_TOKEN }}
     - name: Login to GHCR
       uses: docker/login-action@v2
       with:
