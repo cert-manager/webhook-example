@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	//"k8s.io/client-go/kubernetes"
+	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/rest"
 
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
 	"github.com/pluralsh/plural-certmanager-webhook/plural"
 )
 
@@ -28,19 +27,19 @@ func main() {
 	// the different implementations.
 	cmd.RunWebhookServer(GroupName,
 		&pluralDnsProviderSolver{
-			Token: os.Getenv("PLURAL_ACCESS_TOKEN"),
+			Token:    os.Getenv("PLURAL_ACCESS_TOKEN"),
 			Endpoint: os.Getenv("PlURAL_ENDPOINT"),
 		},
 	)
 }
 
 type pluralDnsProviderSolver struct {
-	Token string
+	Token    string
 	Endpoint string
 }
 
 type pluralDNSProviderConfig struct {
-	Cluster string `json:"cluster"`
+	Cluster  string `json:"cluster"`
 	Provider string `json:"provider"`
 }
 
@@ -63,9 +62,9 @@ func (c *pluralDnsProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	client := plural.NewClient(conf)
 
 	_, err = client.CreateRecord(&plural.DnsRecord{
-		Type: "TXT",
-		Name: ch.ResolvedFQDN,
-		Records: []string{ ch.Key },
+		Type:    "TXT",
+		Name:    ch.ResolvedFQDN,
+		Records: []string{ch.Key},
 	})
 	fmt.Printf("attempted to create record for %s", ch.ResolvedFQDN)
 
