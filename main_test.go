@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jetstack/cert-manager/test/acme/dns"
+	"github.com/cert-manager/cert-manager/test/acme/dns"
 
 	"github.com/cert-manager/webhook-example/example"
 )
@@ -26,15 +26,16 @@ func TestRunsSuite(t *testing.T) {
 	//	dns.SetManifestPath("testdata/my-custom-solver"),
 	//	dns.SetBinariesPath("_test/kubebuilder/bin"),
 	//)
-
 	solver := example.New("59351")
-	fixture := dns.NewFixture(solver,
+	fixture := dns.NewFixture(solver.Name(),
 		dns.SetResolvedZone("example.com."),
 		dns.SetManifestPath("testdata/my-custom-solver"),
-		dns.SetBinariesPath("_test/kubebuilder/bin"),
 		dns.SetDNSServer("127.0.0.1:59351"),
 		dns.SetUseAuthoritative(false),
 	)
+	//need to uncomment and  RunConformance delete runBasic and runExtended once https://github.com/cert-manager/cert-manager/pull/4835 is merged
+	//fixture.RunConformance(t)
+	fixture.RunBasic(t)
+	fixture.RunExtended(t)
 
-	fixture.RunConformance(t)
 }

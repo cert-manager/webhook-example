@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	acme "github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	acme "github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
 )

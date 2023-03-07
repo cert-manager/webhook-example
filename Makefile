@@ -3,7 +3,7 @@ ARCH ?= $(shell go env GOARCH)
 
 GCP_PROJECT ?= pluralsh
 IMAGE_NAME := "plural-certmanager-webhook"
-IMAGE_TAG := "0.1.0"
+IMAGE_TAG := "0.1.3"
 DKR_HOST ?= dkr.plural.sh
 
 OUT := $(shell pwd)/_out
