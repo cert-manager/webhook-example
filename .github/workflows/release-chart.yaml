@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - master
-    paths: 
-      - "charts/dnsimple/Chart.yaml"
+    # paths: 
+      # - "charts/dnsimple/Chart.yaml"
 
 jobs:
   release:
