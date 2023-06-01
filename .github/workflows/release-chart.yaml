@@ -20,7 +20,7 @@ jobs:
         id: chart_version
         uses: mikefarah/yq@d2f1ae9db722ac6b0702dd7f8a08dd22722d8c2d # v4.33.3
         with:
-          cmd: yq eval '.version' './charts/metrics-server/Chart.yaml'
+          cmd: yq eval '.version' './charts/dnsimple/Chart.yaml'
 
       - name: Configure Git
         run: |
