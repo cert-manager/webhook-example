@@ -18,10 +18,7 @@ dnsimple:
   # tokenSecretName:
 clusterIssuer:
   email: name@example.com
-  staging:
-    enabled: false
-  production:
-    enabled: false
+  
 image:
   repository: ghcr.io/jahanson/cert-manager-webhook-dnsimple
   tag: latest
