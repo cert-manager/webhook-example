@@ -33,4 +33,5 @@ jobs:
           push: true
           tags: |
             ghcr.io/jahanson/cert-manager-webhook-dnsimple:latest
-            ghcr.io/jahanson/cert-manager-webhook-dnsimple:0.0.1
+          secrets: |
+            GIT_AUTH_TOKEN=${{ secrets.MYTOKEN }}
