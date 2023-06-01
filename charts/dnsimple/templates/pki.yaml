@@ -69,7 +69,7 @@ spec:
   secretName: {{ include "dnsimple-webhook.servingCertificate" . }}
   duration: 8760h # 1y
   issuerRef:
-    name: {{ include "example-webhook.rootCAIssuer" . }}
+    name: {{ include "dnsimple-webhook.rootCAIssuer" . }}
   dnsNames:
   - {{ include "dnsimple-webhook.fullname" . }}
   - {{ include "dnsimple-webhook.fullname" . }}.{{ .Release.Namespace }}
