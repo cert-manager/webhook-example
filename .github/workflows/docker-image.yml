@@ -29,10 +29,10 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
-            user/app:latest
-            user/app:1.0.0
-            ghcr.io/user/app:latest
-            ghcr.io/user/app:1.0.0
+            jahanson/cert-manager-webhook-dnsimple:latest
+            jahanson/cert-manager-webhook-dnsimple:0.0.1
+            ghcr.io/jahanson/cert-manager-webhook-dnsimple:latest
+            ghcr.io/jahanson/cert-manager-webhook-dnsimple:0.0.1
