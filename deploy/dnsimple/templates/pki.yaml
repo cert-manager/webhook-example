@@ -4,11 +4,11 @@
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: {{ include "example-webhook.selfSignedIssuer" . }}
+  name: {{ include "dnsimple-webhook.selfSignedIssuer" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "dnsimple-webhook.name" . }}
+    chart: {{ include "dnsimple-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
@@ -20,19 +20,19 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ include "example-webhook.rootCACertificate" . }}
+  name: {{ include "dnsimple-webhook.rootCACertificate" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "dnsimple-webhook.name" . }}
+    chart: {{ include "dnsimple-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  secretName: {{ include "example-webhook.rootCACertificate" . }}
+  secretName: {{ include "dnsimple-webhook.rootCACertificate" . }}
   duration: 43800h # 5y
   issuerRef:
-    name: {{ include "example-webhook.selfSignedIssuer" . }}
-  commonName: "ca.example-webhook.cert-manager"
+    name: {{ include "dnsimple-webhook.selfSignedIssuer" . }}
+  commonName: "ca.dnsimple-webhook.cert-manager"
   isCA: true
 
 ---
@@ -41,16 +41,16 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: {{ include "example-webhook.rootCAIssuer" . }}
+  name: {{ include "dnsimple-webhook.rootCAIssuer" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "dnsimple-webhook.name" . }}
+    chart: {{ include "dnsimple-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
   ca:
-    secretName: {{ include "example-webhook.rootCACertificate" . }}
+    secretName: {{ include "dnsimple-webhook.rootCACertificate" . }}
 
 ---
 
@@ -58,19 +58,19 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ include "example-webhook.servingCertificate" . }}
+  name: {{ include "dnsimple-webhook.servingCertificate" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "dnsimple-webhook.name" . }}
+    chart: {{ include "dnsimple-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  secretName: {{ include "example-webhook.servingCertificate" . }}
+  secretName: {{ include "dnsimple-webhook.servingCertificate" . }}
   duration: 8760h # 1y
   issuerRef:
     name: {{ include "example-webhook.rootCAIssuer" . }}
   dnsNames:
-  - {{ include "example-webhook.fullname" . }}
-  - {{ include "example-webhook.fullname" . }}.{{ .Release.Namespace }}
-  - {{ include "example-webhook.fullname" . }}.{{ .Release.Namespace }}.svc
+  - {{ include "dnsimple-webhook.fullname" . }}
+  - {{ include "dnsimple-webhook.fullname" . }}.{{ .Release.Namespace }}
+  - {{ include "dnsimple-webhook.fullname" . }}.{{ .Release.Namespace }}.svc

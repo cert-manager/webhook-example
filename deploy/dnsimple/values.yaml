@@ -6,14 +6,24 @@
 # solve the DNS01 challenge.
 # This group name should be **unique**, hence using your own company's domain
 # here is recommended.
-groupName: acme.mycompany.com
+groupName: acme.jahanson.com
 
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
-
+# logLevel: 3
+dnsimple:
+  token: ""
+  # existingTokenSecret: false
+  # tokenSecretName:
+clusterIssuer:
+  email: name@example.com
+  staging:
+    enabled: false
+  production:
+    enabled: false
 image:
-  repository: mycompany/webhook-image
+  repository: ghcr.io/jahanson/cert-manager-webhook-dnsimple
   tag: latest
   pullPolicy: IfNotPresent
 
