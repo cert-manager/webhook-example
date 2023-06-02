@@ -1,8 +1,8 @@
 apiVersion: v1
-appVersion: "0.0.5"
+appVersion: "0.0.6"
 description: cert-manager webhook solver for ACME DNS01 challenge via DNSimple
 name: cert-manager-webhook-dnsimple
-version: 0.0.5
+version: 0.0.6
 home: https://github.com/jahanson/cert-manager-webhook-dnsimple
 sources:
   - https://github.com/jahanson/cert-manager-webhook-dnsimple
