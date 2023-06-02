@@ -9,6 +9,31 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 ---
+# Grant the webhook permission to read the api-token Secret in the specified namespace.
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+ namespace: {{ .Release.Namespace | quote }}
+ name: {{ include "dnsimple-webhook.fullname" . }}:access-secret
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+ name: {{ include "dnsimple-webhook.fullname" . }}:access-secret
+ namespace: {{ .Release.Namespace | quote }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "dnsimple-webhook.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+roleRef:
+ kind: Role
+ name: {{ include "dnsimple-webhook.fullname" . }}:access-secret
+ apiGroup: rbac.authorization.k8s.io
+---
 # Grant the webhook permission to read the ConfigMap containing the Kubernetes
 # apiserver's requestheader-ca-certificate.
 # This ConfigMap is automatically created by the Kubernetes apiserver.
