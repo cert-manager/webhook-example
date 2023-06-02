@@ -21,7 +21,7 @@ clusterIssuer:
   
 image:
   repository: ghcr.io/jahanson/cert-manager-webhook-dnsimple
-  tag: ""
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 nameOverride: ""
