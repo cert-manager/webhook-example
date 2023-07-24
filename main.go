@@ -201,7 +201,7 @@ func (c *gcoreDNSProviderSolver) initSDK(ch *v1alpha1.ChallengeRequest) (*dnssdk
 	}
 	apiFullUrl := cfg.ApiUrl
 	if apiFullUrl == "" {
-		apiFullUrl = "https://api.gcorelabs.com/dns"
+		apiFullUrl = "https://api.gcore.com/dns"
 	}
 	apiURL, err := url.Parse(apiFullUrl)
 	if err != nil || apiFullUrl == "" {
