@@ -29,5 +29,5 @@ jobs:
         context: .
         file: ./Dockerfile
         tags: |
-          ghcr.io/${{ github.repository }}:latest
-          ghcr.io/${{ github.repository }}:${{ github.ref }}
+          ghcr.io/g-core/cert-manager-webhook-gcore:latest
+          ghcr.io/g-core/cert-manager-webhook-gcore:${{ github.ref }}
