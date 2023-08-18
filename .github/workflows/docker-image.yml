@@ -30,4 +30,4 @@ jobs:
         file: ./Dockerfile
         tags: |
           ghcr.io/g-core/cert-manager-webhook-gcore:latest
-          ghcr.io/g-core/cert-manager-webhook-gcore:${{ github.ref }}
+          ghcr.io/g-core/cert-manager-webhook-gcore:${{ github.ref_name }}
