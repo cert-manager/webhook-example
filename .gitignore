@@ -15,4 +15,4 @@
 cert-manager-webhook-dnsimple
 
 # Ignore test binaries
-__main__/
+__test__/

@@ -8,16 +8,16 @@ import (
 	"strconv"
 	"strings"
 
-	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/klog"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/dnsimple/dnsimple-go/dnsimple"
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
