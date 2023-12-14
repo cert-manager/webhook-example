@@ -1,0 +1,31 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    concurrency:
+      group: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check Out Repository
+      uses: actions/checkout@v2
+    - name: Run tests
+      run: |
+          cat > testdata/ibm-cloud-cis/config.json <<EOF
+          {
+              "ibmCloudCisCrns": [ "$TEST_CIS_INSTANCE_CRN" ]
+          }
+          EOF
+
+          cat testdata/ibm-cloud-cis/config.json
+
+          make test
+      env:
+        TEST_ZONE_NAME: ${{ vars.TEST_ZONE_NAME }}
+        TEST_DNS_RECORD: ${{ vars.TEST_DNS_RECORD }}
+        TEST_CIS_INSTANCE_CRN: ${{ vars.TEST_CIS_INSTANCE_CRN }}
+        IBMCLOUD_API_KEY: ${{ secrets.IBMCLOUD_API_KEY }}

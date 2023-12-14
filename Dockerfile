@@ -11,11 +11,11 @@ RUN go mod download
 
 FROM build_deps AS build
 
-COPY . .
+COPY main.go .
 
 RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
 
-FROM alpine:3.18
+FROM alpine:3.18 as final
 
 RUN apk add --no-cache ca-certificates
 

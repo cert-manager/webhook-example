@@ -1,26 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "example-webhook.fullname" . }}
+  name: {{ include "cert-manager-ibm-cis-webhook.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "example-webhook.name" . }}
-    chart: {{ include "example-webhook.chart" . }}
+    app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "example-webhook.name" . }}
+      app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
       release: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: {{ include "example-webhook.name" . }}
+        app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
         release: {{ .Release.Name }}
     spec:
-      serviceAccountName: {{ include "example-webhook.fullname" . }}
+      serviceAccountName: {{ include "cert-manager-ibm-cis-webhook.fullname" . }}
+      imagePullSecrets:
+      {{- range .Values.imagePullSecrets }}
+        - name: {{ .name | quote }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -31,6 +35,8 @@ spec:
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}
+            - name: IBMCLOUD_API_KEY
+              value: {{ .Values.ibmCloudApiKey | quote }}
           ports:
             - name: https
               containerPort: 443
@@ -54,7 +60,7 @@ spec:
       volumes:
         - name: certs
           secret:
-            secretName: {{ include "example-webhook.servingCertificate" . }}
+            secretName: {{ include "cert-manager-ibm-cis-webhook.servingCertificate" . }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

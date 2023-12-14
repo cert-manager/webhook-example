@@ -1,0 +1,4 @@
+owner: ibm-skills-network
+git-repo: charts
+# package-path: deploy/cert-manager-ibm-cis-webhook/
+# package-path: charts

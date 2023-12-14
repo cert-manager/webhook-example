@@ -1,0 +1,63 @@
+name: Release Helm Chart
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "**"
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  release:
+    if: github.event_name == 'push' # This ensures release only runs on push events, not on pull_request events
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install yq - portable yaml processor
+        uses: mikefarah/yq@v4.30.5
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.4.0
+
+      - name: Lint chart
+        run: helm lint deploy/cert-manager-ibm-cis-webhook
+
+      - name: Fetch charts dependencies
+        run: |
+          cd deploy/cert-manager-ibm-cis-webhook
+          helm dependency build
+
+      - name: Package Helm Chart
+        run: |
+          helm package deploy/cert-manager-ibm-cis-webhook
+
+      - name: Check Out Helm Chart Repository
+        uses: actions/checkout@v2
+        with:
+          repository: ibm-skills-network/charts
+          token: ${{ secrets.PUBLIC_HELM_CHART_REPO_PUBLISH_TOKEN }}
+          path: charts-repo
+          ref: gh-pages
+
+      - name: Copy Packaged Chart to Charts Repo
+        run: |
+          cp cert-manager-ibm-cis-webhook*.tgz charts-repo/
+
+      - name: Update Helm Chart Repository Index
+        run: |
+          cd charts-repo
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          helm repo index . --url https://ibm-skills-network.github.io/charts/ --merge index.yaml
+          git add .
+          git commit -m "Update Helm chart for my-chart"
+          git push
