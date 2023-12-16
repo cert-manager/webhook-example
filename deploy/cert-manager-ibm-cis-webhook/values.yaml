@@ -10,6 +10,9 @@ groupName: acme.skills.network
 
 ibmCloudApiKey: ""
 
+networkPolicies:
+  enabled: false
+
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
@@ -24,6 +27,8 @@ imagePullSecrets: []
 
 nameOverride: ""
 fullnameOverride: ""
+
+containerPort: 8443
 
 service:
   type: ClusterIP

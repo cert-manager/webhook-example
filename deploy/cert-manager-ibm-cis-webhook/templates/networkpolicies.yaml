@@ -1,0 +1,52 @@
+{{- if .Values.networkPolicies.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "cert-manager-ibm-cis-webhook.fullname" . }}-allow-dns
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "cert-manager-ibm-cis-webhook.fullname" . }}-allow-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: {{ .Values.containerPort }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-to-k8s-api
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+  policyTypes:
+    - Egress
+  egress:
+    - {}
+{{- end }}
