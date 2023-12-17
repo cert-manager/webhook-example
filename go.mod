@@ -3,18 +3,18 @@ module github.com/pluralsh/plural-certmanager-webhook
 go 1.19
 
 require (
-	github.com/cert-manager/cert-manager v1.11.0
+	github.com/cert-manager/cert-manager v1.11.3
 	github.com/cert-manager/webhook-example v0.0.0-20230119163313-9ea71aef37e6
 	github.com/miekg/dns v1.1.51
 	github.com/pluralsh/acme v0.0.2
 	github.com/pluralsh/gqlclient v1.3.9
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.2
-	k8s.io/apiextensions-apiserver v0.26.2
-	k8s.io/apimachinery v0.26.2
-	k8s.io/apiserver v0.26.2
-	k8s.io/client-go v0.26.2
-	k8s.io/component-base v0.26.2
+	k8s.io/apiextensions-apiserver v0.26.4
+	k8s.io/apimachinery v0.26.4
+	k8s.io/apiserver v0.26.4
+	k8s.io/client-go v0.26.4
+	k8s.io/component-base v0.26.4
 	k8s.io/kube-openapi v0.0.0-20230109183929-3758b55a6596
 )
 
@@ -105,13 +105,13 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.26.2 // indirect
+	k8s.io/api v0.26.4 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
-	k8s.io/kms v0.26.2 // indirect
-	k8s.io/kube-aggregator v0.26.0 // indirect
+	k8s.io/kms v0.26.4 // indirect
+	k8s.io/kube-aggregator v0.26.4 // indirect
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448 // indirect
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.35 // indirect
-	sigs.k8s.io/controller-runtime v0.14.1 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.36 // indirect
+	sigs.k8s.io/controller-runtime v0.14.6 // indirect
 	sigs.k8s.io/gateway-api v0.6.0 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
