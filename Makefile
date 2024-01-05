@@ -29,7 +29,7 @@ clean:
 
 .PHONY: build
 build:
-	docker buildx build -t "$(IMAGE_NAME):$(IMAGE_TAG)" . --platform linux/amd64 
+	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
 
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml: $(OUT)/rendered-manifest.yaml
