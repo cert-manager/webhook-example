@@ -4,7 +4,7 @@ metadata:
   name: {{ include "cert-manager-ibm-cis-webhook.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    app.kubernetes.io/name: {{ include "cert-manager-ibm-cis-webhook.name" . }}
     chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -18,7 +18,7 @@ metadata:
   name: {{ include "cert-manager-ibm-cis-webhook.fullname" . }}:webhook-authentication-reader
   namespace: kube-system
   labels:
-    app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    app.kubernetes.io/name: {{ include "cert-manager-ibm-cis-webhook.name" . }}
     chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -39,7 +39,7 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ include "cert-manager-ibm-cis-webhook.fullname" . }}:auth-delegator
   labels:
-    app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    app.kubernetes.io/name: {{ include "cert-manager-ibm-cis-webhook.name" . }}
     chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -59,7 +59,7 @@ kind: ClusterRole
 metadata:
   name: {{ include "cert-manager-ibm-cis-webhook.fullname" . }}:domain-solver
   labels:
-    app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    app.kubernetes.io/name: {{ include "cert-manager-ibm-cis-webhook.name" . }}
     chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -76,7 +76,7 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ include "cert-manager-ibm-cis-webhook.fullname" . }}:domain-solver
   labels:
-    app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    app.kubernetes.io/name: {{ include "cert-manager-ibm-cis-webhook.name" . }}
     chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}

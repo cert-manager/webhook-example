@@ -7,7 +7,7 @@ metadata:
   name: {{ include "cert-manager-ibm-cis-webhook.selfSignedIssuer" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    app.kubernetes.io/name: {{ include "cert-manager-ibm-cis-webhook.name" . }}
     chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -23,7 +23,7 @@ metadata:
   name: {{ include "cert-manager-ibm-cis-webhook.rootCACertificate" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    app.kubernetes.io/name: {{ include "cert-manager-ibm-cis-webhook.name" . }}
     chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -44,7 +44,7 @@ metadata:
   name: {{ include "cert-manager-ibm-cis-webhook.rootCAIssuer" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    app.kubernetes.io/name: {{ include "cert-manager-ibm-cis-webhook.name" . }}
     chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -61,7 +61,7 @@ metadata:
   name: {{ include "cert-manager-ibm-cis-webhook.servingCertificate" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    app: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    app.kubernetes.io/name: {{ include "cert-manager-ibm-cis-webhook.name" . }}
     chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
