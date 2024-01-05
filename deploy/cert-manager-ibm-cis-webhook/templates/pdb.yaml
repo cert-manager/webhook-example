@@ -1,0 +1,16 @@
+{{- if .Values.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "cert-manager-ibm-cis-webhook.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "cert-manager-ibm-cis-webhook.name" . }}
+    chart: {{ include "cert-manager-ibm-cis-webhook.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  maxUnavailable: 10%
+  selector:
+    matchLabels:
+      release: {{ .Release.Name }}
+{{- end }}
