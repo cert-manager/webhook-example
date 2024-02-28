@@ -1,0 +1,14 @@
+{
+  "identityEndpoint": "https://infra.mail.ru/identity/v3/",
+  "dnsEndpoint":"https://mcs.mail.ru/public-dns/v2/dns",
+  "userDomainName": "users",
+  "projectID": "18fb4335c0704725a91b5d8affff5c3b",
+  "usernameSecretRef": {
+    "name": "vkcloud-secret",
+    "key": "username"
+  },
+  "passwordSecretRef": {
+    "name": "vkcloud-secret",
+    "key": "password"
+  }
+}
