@@ -17,3 +17,4 @@ cert-manager-webhook-example
 # Make artifacts
 _out
 _test
+sotoon-api-key.yaml

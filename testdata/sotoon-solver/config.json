@@ -1,0 +1,7 @@
+{
+    "apiKeySecretRef": {
+        "name": "sotoon-api-key",
+        "key": "key"
+    },
+    "baseUrl": "https://api.delivery.sotoon.ir/apis/delivery.cafebazaar.cloud%2Fv1beta1/namespaces/yektanet/domainzones"
+}
