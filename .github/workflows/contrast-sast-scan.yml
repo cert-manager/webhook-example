@@ -10,5 +10,5 @@ on:
 
 jobs:
   sast-scan:
-    uses: ibm-skills-network/.github/.github/workflows/contrast-sast-scan.yml@main
+    uses: ibm-skills-network/.github/.github/workflows/contrast-sast-scan.yaml@main
     secrets: inherit
