@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
+	"net/http"
+	"io"
+	"bytes"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/rest"
@@ -25,22 +29,16 @@ func main() {
 	// webhook, where the Name() method will be used to disambiguate between
 	// the different implementations.
 	cmd.RunWebhookServer(GroupName,
-		&customDNSProviderSolver{},
+		&abioncoreDNSProviderSolver{},
 	)
 }
 
-// customDNSProviderSolver implements the provider-specific logic needed to
+// abioncoreDNSProviderSolver implements the provider-specific logic needed to
 // 'present' an ACME challenge TXT record for your own DNS provider.
 // To do so, it must implement the `github.com/cert-manager/cert-manager/pkg/acme/webhook.Solver`
 // interface.
-type customDNSProviderSolver struct {
-	// If a Kubernetes 'clientset' is needed, you must:
-	// 1. uncomment the additional `client` field in this structure below
-	// 2. uncomment the "k8s.io/client-go/kubernetes" import at the top of the file
-	// 3. uncomment the relevant code in the Initialize method below
-	// 4. ensure your webhook's service account has the required RBAC role
-	//    assigned to it for interacting with the Kubernetes APIs you need.
-	//client kubernetes.Clientset
+type abioncoreDNSProviderSolver struct {
+
 }
 
 // customDNSProviderConfig is a structure that is used to decode into when
@@ -57,24 +55,44 @@ type customDNSProviderSolver struct {
 // You should not include sensitive information here. If credentials need to
 // be used by your provider here, you should reference a Kubernetes Secret
 // resource and fetch these credentials using a Kubernetes clientset.
-type customDNSProviderConfig struct {
+type abioncoreDNSProviderConfig struct {
 	// Change the two fields below according to the format of the configuration
 	// to be decoded.
 	// These fields will be set by users in the
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
-
-	//Email           string `json:"email"`
-	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
+	APIKey string `json:"x-api-key"`
 }
-
 // Name is used as the name for this DNS solver when referencing it on the ACME
 // Issuer resource.
 // This should be unique **within the group name**, i.e. you can have two
 // solvers configured with the same Name() **so long as they do not co-exist
 // within a single webhook deployment**.
 // For example, `cloudflare` may be used as the name of a solver.
-func (c *customDNSProviderSolver) Name() string {
-	return "my-custom-solver"
+func (c *abioncoreDNSProviderSolver) Name() string {
+	return "abion-core"
+}
+
+type Entry struct {
+    Data Data `json:"data"`
+}
+type Txt struct {
+	TTL      int    `json:"ttl"`
+    Rdata    string `json:"rdata"`
+	Comments string `json:"comments"`
+}
+type AcmeChallenge struct {
+    Txt []Txt `json:"TXT"`
+}
+type Records struct {
+    AcmeChallenge AcmeChallenge `json:"_acme-challenge"`
+}
+type Attributes struct {
+    Records Records `json:"records"`
+}
+type Data struct {
+    Type       string     `json:"type"`
+    ID         string     `json:"id"`
+    Attributes Attributes `json:"attributes"`
 }
 
 // Present is responsible for actually presenting the DNS record with the
@@ -82,16 +100,91 @@ func (c *customDNSProviderSolver) Name() string {
 // This method should tolerate being called multiple times with the same value.
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
-func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
+func (c *abioncoreDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
+
+	// klog.V(2).Infof("Present: namespace=%s, zone=%s, fqdn=%s",
+	// ch.ResourceNamespace, ch.ResolvedZone, ch.ResolvedFQDN)
+
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
 	}
 
+	// Get name and zone from challenge request
+	// name := strings.TrimSuffix(strings.TrimSuffix(ch.ResolvedFQDN, ch.ResolvedZone), ".")
+	zone := strings.TrimSuffix(ch.ResolvedZone, ".")
+	
 	// TODO: do something more useful with the decoded configuration
 	fmt.Printf("Decoded configuration %v", cfg)
 
-	// TODO: add code that sets a record in the DNS provider's console
+	// https://demo.abion.com/pmapi/  ################### Main Api
+
+	// Get all zones (GET https://demo.abion.com/pmapi/v1/zones)
+	// Create client
+	client := &http.Client{}
+
+	// Create request
+	request, err := http.NewRequest("GET", "https://demo.abion.com/pmapi/v1/zones/"+zone, nil)
+	// Headers
+	request.Header.Add("X-API-KEY", cfg.APIKey)
+
+	// Fetch Request
+	response, err := client.Do(request)
+	if err != nil {
+		fmt.Println("Failure : ", err)
+		return err
+	}
+	if response.StatusCode != 200 {
+		return fmt.Errorf("did not get expected HTTP 200 but %s", response.Status)
+	}
+
+	// Display Results
+	fmt.Println("response Status : ", response.Status)
+	fmt.Println("response Headers : ", response.Header)
+
+	// Create DNS
+	entry, err := json.Marshal(
+		Entry{
+			Data{"zone", zone, 
+				Attributes{
+					Records{
+						AcmeChallenge{
+							[]Txt{
+								{
+									300,
+									ch.Key,
+									"Let's Encrypt _acme-challenge",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	)
+	body := bytes.NewBuffer(entry)
+	fmt.Println("entry json struct : ", body)
+
+	// Create request
+	request, err = http.NewRequest("PATCH", "https://demo.abion.com/pmapi/v1/zones/"+zone, body)
+	// Headers
+	request.Header.Add("Content-Type", "application/json")
+	request.Header.Add("X-API-KEY", cfg.APIKey)
+
+	// Fetch Request
+	response, err = client.Do(request)
+	if err != nil {
+		fmt.Println("Failure : ", err)
+	}
+
+	// Read Response Body
+	responseBody, _ := io.ReadAll(response.Body)
+
+	// Display Results
+	fmt.Println("response Status : ", response.Status)
+	fmt.Println("response Headers : ", response.Header)
+	fmt.Println("response Body : ", string(responseBody))
+
 	return nil
 }
 
@@ -101,8 +194,79 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // value provided on the ChallengeRequest should be cleaned up.
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
-func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	// TODO: add code that deletes a record from the DNS provider's console
+func (c *abioncoreDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
+	
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+
+	// Get name and zone from challenge request
+	// name := strings.TrimSuffix(strings.TrimSuffix(ch.ResolvedFQDN, ch.ResolvedZone), ".")
+	zone := strings.TrimSuffix(ch.ResolvedZone, ".")
+	
+	// https://demo.abion.com/pmapi/  ################### Main Api
+
+	// Get all zones (GET https://demo.abion.com/pmapi/v1/zones)
+	// Create client
+	client := &http.Client{}
+
+	// Create request
+	request, err := http.NewRequest("GET", "https://demo.abion.com/pmapi/v1/zones/"+zone, nil)
+	// Headers
+	request.Header.Add("X-API-KEY", cfg.APIKey)
+
+	// Fetch Request
+	response, err := client.Do(request)
+	if err != nil {
+		fmt.Println("Failure : ", err)
+		return err
+	}
+	if response.StatusCode != 200 {
+		return fmt.Errorf("did not get expected HTTP 200 but %s", response.Status)
+	}
+
+	// Display Results
+	fmt.Println("response Status : ", response.Status)
+	fmt.Println("response Headers : ", response.Header)
+	//fmt.Println("response Body : ", respBody.Zones[0].ZoneID)
+
+	// Clear txt
+	entry, err := json.Marshal(
+		Entry{
+			Data{"zone", zone, 
+				Attributes{
+					Records{
+						AcmeChallenge{
+							nil,
+						},
+					},
+				},
+			},
+		},
+	)
+	body := bytes.NewBuffer(entry)
+
+	// Create request
+	request, err = http.NewRequest("PATCH", "https://demo.abion.com/pmapi/v1/zones/"+zone, body)
+	// Headers
+	request.Header.Add("Content-Type", "application/json")
+	request.Header.Add("X-API-KEY", cfg.APIKey)
+
+	// Fetch Request
+	response, err = client.Do(request)
+	if err != nil {
+		fmt.Println("Failure : ", err)
+	}
+
+	// Read Response Body
+	responseBody, _ := io.ReadAll(response.Body)
+
+	// Display Results
+	fmt.Println("response Status : ", response.Status)
+	fmt.Println("response Headers : ", response.Header)
+	fmt.Println("response Body : ", string(responseBody))
+
 	return nil
 }
 
@@ -115,7 +279,7 @@ func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 // provider accounts.
 // The stopCh can be used to handle early termination of the webhook, in cases
 // where a SIGTERM or similar signal is sent to the webhook process.
-func (c *customDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
+func (c *abioncoreDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	///// UNCOMMENT THE BELOW CODE TO MAKE A KUBERNETES CLIENTSET AVAILABLE TO
 	///// YOUR CUSTOM DNS PROVIDER
 
@@ -132,14 +296,16 @@ func (c *customDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stop
 
 // loadConfig is a small helper function that decodes JSON configuration into
 // the typed config struct.
-func loadConfig(cfgJSON *extapi.JSON) (customDNSProviderConfig, error) {
-	cfg := customDNSProviderConfig{}
+func loadConfig(cfgJSON *extapi.JSON) (abioncoreDNSProviderConfig, error) {
+
+	cfg := abioncoreDNSProviderConfig{}
 	// handle the 'base case' where no configuration has been provided
 	if cfgJSON == nil {
 		return cfg, nil
 	}
+	
 	if err := json.Unmarshal(cfgJSON.Raw, &cfg); err != nil {
-		return cfg, fmt.Errorf("error decoding solver config: %v", err)
+		return cfg, fmt.Errorf("error decoding config: %v", err)
 	}
 
 	return cfg, nil
