@@ -14,11 +14,11 @@ var (
 	authHeaderName = "X-NFSN-Authentication"
 )
 
-func SetTXTRecord(domain string, resolvedFqdn string, key string, login string, apiKey string) error {
+func SetTXTRecord(domain string, dnsName string, key string, login string, apiKey string) error {
 	urlPath := fmt.Sprintf("/dns/%s/addRR", domain)
 	requestUrl := fmt.Sprintf("%s%s", baseUrl, urlPath)
 
-	values := url.Values{"name": {resolvedFqdn}, "type": {"TXT"}, "data": {key}}
+	values := url.Values{"name": {dnsName}, "type": {"TXT"}, "data": {key}}
 	body := values.Encode()
 	authHeader, err := auth.GetAuthHeader(login, apiKey, urlPath, body)
 	if err != nil {
