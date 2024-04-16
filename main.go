@@ -118,8 +118,21 @@ func (c *customDNSProviderSolver) Present(ch *acme_v1alpha1.ChallengeRequest) er
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
 func (c *customDNSProviderSolver) CleanUp(ch *acme_v1alpha1.ChallengeRequest) error {
-	// TODO: add code that deletes a record from the DNS provider's console
-	return nil
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+
+	apiKeySecret, err := c.client.CoreV1().Secrets("").Get(context.TODO(), cfg.APIKeySecretRef.Name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	apiKeyData := apiKeySecret.Data[cfg.APIKeySecretRef.Key]
+	apiKey := string(apiKeyData)
+
+	dnsName := strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
+
+	return dns.ClearTXTRecord(ch.ResolvedZone, dnsName, ch.Key, cfg.Login, apiKey)
 }
 
 // Initialize will be called when the webhook first starts.
