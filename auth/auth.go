@@ -53,5 +53,5 @@ func GetAuthHeader(login string, apiKey string, url string, body string) (string
 	}
 	bodyHash := ComputeHash(body)
 	hash := ComputeHash(fmt.Sprintf("%s;%s;%s;%s;%s;%s", login, timestamp, salt, apiKey, url, bodyHash))
-	return hash, nil
+	return fmt.Sprintf("%s;%s;%s;%s", login, timestamp, salt, hash), nil
 }
