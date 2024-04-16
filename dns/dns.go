@@ -20,6 +20,19 @@ func SetTXTRecord(domain string, dnsName string, key string, login string, apiKe
 
 	values := url.Values{"name": {dnsName}, "type": {"TXT"}, "data": {key}}
 	body := values.Encode()
+	return send(login, apiKey, urlPath, body, requestUrl)
+}
+
+func ClearTXTRecord(domain string, dnsName string, key string, login string, apiKey string) error {
+	urlPath := fmt.Sprintf("/dns/%s/removeRR", domain)
+	requestUrl := fmt.Sprintf("%s%s", baseUrl, urlPath)
+
+	values := url.Values{"name": {dnsName}, "type": {"TXT"}, "data": {key}}
+	body := values.Encode()
+	return send(login, apiKey, urlPath, body, requestUrl)
+}
+
+func send(login string, apiKey string, urlPath string, body string, requestUrl string) error {
 	authHeader, err := auth.GetAuthHeader(login, apiKey, urlPath, body)
 	if err != nil {
 		return err
