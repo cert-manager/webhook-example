@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/cert-manager/webhook-example/auth"
+	"github.com/MartinWilkerson/cert-manager-webhook-nearlyfreespeech/auth"
 )
 
 var (
