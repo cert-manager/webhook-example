@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/MartinWilkerson/cert-manager-webhook-nearlyfreespeech/dns"
 	acme_v1alpha1 "github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
 	meta_v1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
@@ -95,8 +99,16 @@ func (c *customDNSProviderSolver) Present(ch *acme_v1alpha1.ChallengeRequest) er
 	fmt.Printf("Decoded configuration %v", cfg)
 
 	// TODO: add code that sets a record in the DNS provider's console
+	apiKeySecret, err := c.client.CoreV1().Secrets("").Get(context.TODO(), cfg.APIKeySecretRef.Name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	apiKeyData := apiKeySecret.Data[cfg.APIKeySecretRef.Key]
+	apiKey := string(apiKeyData)
 
-	return nil
+	dnsName := strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
+
+	return dns.SetTXTRecord(ch.ResolvedZone, dnsName, ch.Key, cfg.Login, apiKey)
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
