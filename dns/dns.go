@@ -15,12 +15,12 @@ var (
 )
 
 func SetTXTRecord(domain string, resolvedFqdn string, key string, login string, apiKey string) error {
-	resolvedFqdn = strings.TrimSuffix(resolvedFqdn, domain)
-	requestUrl := fmt.Sprintf("%s/dns/%s", baseUrl, domain)
+	urlPath := fmt.Sprintf("/dns/%s/addRR", domain)
+	requestUrl := fmt.Sprintf("%s%s", baseUrl, urlPath)
 
 	values := url.Values{"name": {resolvedFqdn}, "type": {"TXT"}, "data": {key}}
 	body := values.Encode()
-	authHeader, err := auth.GetAuthHeader(login, apiKey, requestUrl, body)
+	authHeader, err := auth.GetAuthHeader(login, apiKey, urlPath, body)
 	if err != nil {
 		return err
 	}
