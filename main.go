@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -96,10 +97,11 @@ func (c *customDNSProviderSolver) Present(ch *acme_v1alpha1.ChallengeRequest) er
 	}
 
 	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration %v", cfg)
+	log.Printf("Decoded configuration %v", cfg)
+	log.Printf("ResolvedZone: '%v'. ResolvedFQDN: '%v'", ch.ResolvedZone, ch.ResolvedFQDN)
 
 	// TODO: add code that sets a record in the DNS provider's console
-	apiKeySecret, err := c.client.CoreV1().Secrets("").Get(context.TODO(), cfg.APIKeySecretRef.Name, v1.GetOptions{})
+	apiKeySecret, err := c.client.CoreV1().Secrets(ch.ResourceNamespace).Get(context.TODO(), cfg.APIKeySecretRef.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -107,8 +109,9 @@ func (c *customDNSProviderSolver) Present(ch *acme_v1alpha1.ChallengeRequest) er
 	apiKey := string(apiKeyData)
 
 	dnsName := strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
+	domain := strings.TrimSuffix(ch.ResolvedZone, ".")
 
-	return dns.SetTXTRecord(ch.ResolvedZone, dnsName, ch.Key, cfg.Login, apiKey)
+	return dns.SetTXTRecord(domain, dnsName, ch.Key, cfg.Login, apiKey)
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
@@ -123,7 +126,7 @@ func (c *customDNSProviderSolver) CleanUp(ch *acme_v1alpha1.ChallengeRequest) er
 		return err
 	}
 
-	apiKeySecret, err := c.client.CoreV1().Secrets("").Get(context.TODO(), cfg.APIKeySecretRef.Name, v1.GetOptions{})
+	apiKeySecret, err := c.client.CoreV1().Secrets(ch.ResourceNamespace).Get(context.TODO(), cfg.APIKeySecretRef.Name, v1.GetOptions{})
 	if err != nil {
 		return err
 	}
