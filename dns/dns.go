@@ -2,6 +2,8 @@ package dns
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -17,6 +19,7 @@ var (
 func SetTXTRecord(domain string, dnsName string, key string, login string, apiKey string) error {
 	urlPath := fmt.Sprintf("/dns/%s/addRR", domain)
 	requestUrl := fmt.Sprintf("%s%s", baseUrl, urlPath)
+	log.Printf("Request URL: %v", requestUrl)
 
 	values := url.Values{"name": {dnsName}, "type": {"TXT"}, "data": {key}}
 	body := values.Encode()
@@ -52,6 +55,14 @@ func send(login string, apiKey string, urlPath string, body string, requestUrl s
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		bytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("HTTP error code %v: %v", resp.StatusCode, string(bytes))
+	}
 
 	return nil
 }
