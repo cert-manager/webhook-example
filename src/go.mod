@@ -1,6 +1,6 @@
 module github.com/neoskop/cert-manager-webhook-dnsimple
 
-go 1.20
+go 1.22
 
 require (
 	github.com/cert-manager/cert-manager v1.12.1

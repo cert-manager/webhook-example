@@ -1,0 +1,16 @@
+name: Publish a new tagged Docker image
+
+on:
+  push:
+    tags: # v* tags are protected in the repository settings
+      - 'v*'
+
+jobs:
+  docker-build:
+    name: Build tagged Docker image
+    uses: ./.github/workflows/build-images.yaml
+    with:
+      tags: >
+        ${{ github.ref }}
+        commit-${{ github.sha }}
+        latest
