@@ -1,0 +1,54 @@
+name: Run code tests
+
+on:
+  push:
+  workflow_call:
+    secrets:
+      DNSIMPLE_API_TOKEN:
+        required: true
+      DNSIMPLE_ZONE_NAME:
+        required: true
+
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: src/go.mod
+        cache-dependency-path: src/go.sum
+
+
+    - name: Install kubebuilder fixtures
+      id: kubebuilder
+      run: |
+        go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+        echo "BIN_DIR=$(setup-envtest use -p path)" >> $GITHUB_OUTPUT
+
+
+    - name: Run tests
+      env:
+        DNSIMPLE_API_TOKEN: ${{ secrets.DNSIMPLE_API_TOKEN }}
+        DNSIMPLE_ZONE_NAME: ${{ secrets.DNSIMPLE_ZONE_NAME }}
+      run: |
+        export TEST_ASSET_KUBE_APISERVER=${{ steps.kubebuilder.outputs.BIN_DIR }}/kube-apiserver
+        export TEST_ASSET_ETCD=${{ steps.kubebuilder.outputs.BIN_DIR }}/etcd
+        export TEST_ASSET_KUBECTL=${{ steps.kubebuilder.outputs.BIN_DIR }}/kubectl
+        export TEST_ZONE_NAME="${DNSIMPLE_ZONE_NAME}." # add trailing dot
+        echo """apiVersion: v1
+        kind: Secret
+        metadata:
+          name: dnsimple-token
+        type: Opaque
+        stringData:
+            token: $DNSIMPLE_API_TOKEN
+        """ > testdata/dnsimple-token.yaml
+        cd src
+        go test -v .
