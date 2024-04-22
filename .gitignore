@@ -14,5 +14,5 @@
 # Ignore the built binary
 cert-manager-webhook-dnsimple
 
-# Ignore test binaries
-__test__/
+# Ignore kubebuilder test binaries
+_test/

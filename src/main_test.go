@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	zone = os.Getenv("TEST_ZONE_NAME")
+	zone         = os.Getenv("TEST_ZONE_NAME")
+	testdata_dir = "../testdata"
 )
 
 func TestRunsSuite(t *testing.T) {
@@ -19,7 +20,8 @@ func TestRunsSuite(t *testing.T) {
 	fixture := dns.NewFixture(&dnsimpleDNSProviderSolver{},
 		dns.SetResolvedZone(zone),
 		dns.SetAllowAmbientCredentials(false),
-		dns.SetManifestPath("testdata/dnsimple"),
+		dns.SetManifestPath(testdata_dir),
+		dns.SetDNSName("puzzle.beer"),
 	)
 
 	fixture.RunConformance(t)

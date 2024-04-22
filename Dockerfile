@@ -5,14 +5,14 @@ RUN apk add --no-cache git
 WORKDIR /workspace
 ENV GO111MODULE=on
 
-COPY go.mod .
-COPY go.sum .
+COPY src/go.mod .
+COPY src/go.sum .
 
 RUN go mod download
 
 FROM build_deps AS build
 
-COPY . .
+COPY src .
 
 RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
 
