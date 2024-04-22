@@ -73,6 +73,7 @@ type dnsimpleDNSProviderConfig struct {
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
 	TokenSecretRef cmmeta.SecretKeySelector `json:"tokenSecretRef"`
+	AccountID      *string                  `json:"accountID"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -85,19 +86,19 @@ func (c *dnsimpleDNSProviderSolver) Name() string {
 	return "dnsimple"
 }
 
-func (c *dnsimpleDNSProviderSolver) getClient(cfg *dnsimpleDNSProviderConfig, namespace string) (*dnsimple.Client, error) {
+func (c *dnsimpleDNSProviderSolver) getClient(cfg *dnsimpleDNSProviderConfig, namespace string) (client *dnsimple.Client, accountID string, err error) {
 	secretName := cfg.TokenSecretRef.LocalObjectReference.Name
 	klog.V(6).Infof("Try to load secret `%s` with key `%s`", secretName, cfg.TokenSecretRef.Key)
 	sec, err := c.client.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
 
 	if err != nil {
-		return nil, fmt.Errorf("unable to get secret `%s`; %v", secretName, err)
+		return nil, "", fmt.Errorf("unable to get secret `%s`; %v", secretName, err)
 	}
 
 	secBytes, ok := sec.Data[cfg.TokenSecretRef.Key]
 
 	if !ok {
-		return nil, fmt.Errorf("Key %q not found in secret \"%s/%s\"", cfg.TokenSecretRef.Key, cfg.TokenSecretRef.LocalObjectReference.Name, namespace)
+		return nil, "", fmt.Errorf("Key %q not found in secret \"%s/%s\"", cfg.TokenSecretRef.Key, cfg.TokenSecretRef.LocalObjectReference.Name, namespace)
 	}
 
 	apiKey := string(secBytes)
@@ -105,9 +106,27 @@ func (c *dnsimpleDNSProviderSolver) getClient(cfg *dnsimpleDNSProviderConfig, na
 	tc := dnsimple.StaticTokenHTTPClient(context.Background(), apiKey)
 
 	// new client
-	client := dnsimple.NewClient(tc)
+	client = dnsimple.NewClient(tc)
 	client.SetUserAgent("cert-manager-webhook-dnsimple")
-	return client, nil
+
+	// if account id is configured explicitly we use it
+	if cfg.AccountID != nil {
+		return client, *cfg.AccountID, nil
+	}
+
+	// resolve account id if not configured
+	whoamiResponse, err := client.Identity.Whoami(context.Background())
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to lookup account ID: %w", err)
+	}
+
+	// if whoami is called with a user token it does not contain account data
+	if whoamiResponse.Data == nil || whoamiResponse.Data.Account == nil {
+		return nil, "", fmt.Errorf("failed to lookup account ID. data missing. you are most likely using a user token without configuring an account ID in your issuer config.")
+	}
+
+	accountID = strconv.FormatInt(whoamiResponse.Data.Account.ID, 10)
+	return client, accountID, nil
 }
 
 func (c *dnsimpleDNSProviderSolver) getDomainAndEntry(ch *v1alpha1.ChallengeRequest) (string, string) {
@@ -119,14 +138,9 @@ func (c *dnsimpleDNSProviderSolver) getDomainAndEntry(ch *v1alpha1.ChallengeRequ
 }
 
 func (c *dnsimpleDNSProviderSolver) getExistingRecord(cfg *dnsimpleDNSProviderConfig, client *dnsimple.Client, accountID string, zoneName string, entry string, key string) (*dnsimple.ZoneRecord, error) {
-	zone, err := client.Zones.GetZone(context.Background(), accountID, zoneName)
-
-	if err != nil {
-		return nil, fmt.Errorf("unable to get zone: %s", err)
-	}
 
 	// Look for existing TXT records.
-	records, err := client.Zones.ListRecords(context.Background(), accountID, zone.Data.Name, &dnsimple.ZoneRecordListOptions{Type: dnsimple.String("TXT"), Name: dnsimple.String(entry)})
+	records, err := client.Zones.ListRecords(context.Background(), accountID, zoneName, &dnsimple.ZoneRecordListOptions{Type: dnsimple.String("TXT"), Name: dnsimple.String(entry)})
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to get resource records: %s", err)
@@ -173,15 +187,6 @@ func (c *dnsimpleDNSProviderSolver) deleteRecord(cfg *dnsimpleDNSProviderConfig,
 	return createdRecord.Data, nil
 }
 
-func Whoami(client *dnsimple.Client) (string, error) {
-	whoamiResponse, err := client.Identity.Whoami(context.Background())
-	if err != nil {
-		return "", err
-	}
-
-	return strconv.FormatInt(whoamiResponse.Data.Account.ID, 10), nil
-}
-
 // Present is responsible for actually presenting the DNS record with the
 // DNS provider.
 // This method should tolerate being called multiple times with the same value.
@@ -193,15 +198,10 @@ func (c *dnsimpleDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error
 		return err
 	}
 
-	client, err := c.getClient(&cfg, ch.ResourceNamespace)
+	client, accountID, err := c.getClient(&cfg, ch.ResourceNamespace)
 
 	if err != nil {
 		return fmt.Errorf("unable to get client: %s", err)
-	}
-
-	accountID, err := Whoami(client)
-	if err != nil {
-		return fmt.Errorf("unable to fetch account ID: %s", err)
 	}
 
 	entry, domain := c.getDomainAndEntry(ch)
@@ -242,15 +242,10 @@ func (c *dnsimpleDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error
 		return err
 	}
 
-	client, err := c.getClient(&cfg, ch.ResourceNamespace)
+	client, accountID, err := c.getClient(&cfg, ch.ResourceNamespace)
 
 	if err != nil {
 		return fmt.Errorf("unable to get client: %s", err)
-	}
-
-	accountID, err := Whoami(client)
-	if err != nil {
-		return fmt.Errorf("unable to fetch account ID: %s", err)
 	}
 
 	entry, domain := c.getDomainAndEntry(ch)

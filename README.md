@@ -10,7 +10,7 @@ A [cert-manager][2] ACME DNS01 solver webhook for [DNSimple][1].
 
 ## Quickstart
 
-Take note of your DNSimple API token from the account settings in the automation tab. Run the following commands replacing the API token placeholders and email address:
+Take note of your DNSimple API token from the account settings in the automation tab. Run the following commands replacing the API token / account ID placeholders and email address:
 
 ```bash
 $ helm repo add neoskop https://charts.neoskop.dev
@@ -18,6 +18,7 @@ $ helm install cert-manager-webhook-dnsimple \
     --namespace cert-manager \
     --dry-run \
     --set dnsimple.token='<DNSIMPLE_API_TOKEN>' \
+    --set dnsimple.accountID='<DNSIMPLE_ACCOUNT_ID>' # Only needed if using a User API token \
     --set clusterIssuer.production.enabled=true \
     --set clusterIssuer.staging.enabled=true \
     --set clusterIssuer.email=email@example.com \
@@ -52,6 +53,7 @@ The Helm chart accepts the following values:
 | name                               | required | description                                     | default value                           |
 | ---------------------------------- | -------- | ----------------------------------------------- | --------------------------------------- |
 | `dnsimple.token`                   | ✔️       | DNSimple API Token                              | _empty_                                 |
+| `dnsimple.accountID`               |          | DNSimple Account ID (required for User tokens)  | _empty_                                 |
 | `clusterIssuer.email`              |          | LetsEncrypt Admin Email                         | `name@example.com`                      |
 | `clusterIssuer.production.enabled` |          | Create a production `ClusterIssuer`             | `false`                                 |
 | `clusterIssuer.staging.enabled`    |          | Create a staging `ClusterIssuer`                | `false`                                 |
