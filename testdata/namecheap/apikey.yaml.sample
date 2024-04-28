@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: namecheap-credentials
+type: Opaque
+data:
+  apiKey: "<<BASE64 ENCODED NAMECHEAP API KEY>>"
+  apiUser: "<<BASE64 ENCODED NAMECHEAP API USER>>"
