@@ -57,15 +57,16 @@ The Helm chart accepts the following values:
 | name                               | required | description                                     | default value                           |
 | ---------------------------------- | -------- | ----------------------------------------------- | --------------------------------------- |
 | `dnsimple.token`                   | ✔️       | DNSimple API Token                              | _empty_                                 |
-| `dnsimple.accountID`               |          | DNSimple Account ID (required when `dnsimple.token` is a user-token)  | _empty_                                 |
-| `clusterIssuer.email`              |          | LetsEncrypt Admin Email                         | _empty_                      |
+| `dnsimple.accountID`               |          | DNSimple Account ID (required when `dnsimple.token` is a user-token)  | _empty_           |
+| `clusterIssuer.email`              |          | LetsEncrypt Admin Email                         | _empty_                                 |
 | `clusterIssuer.production.enabled` |          | Create a production `ClusterIssuer`             | `false`                                 |
 | `clusterIssuer.staging.enabled`    |          | Create a staging `ClusterIssuer`                | `false`                                 |
 | `image.repository`                 | ✔️       | Docker image for the webhook solver             | `ghcr.io/puzzle/cert-manager-webhook-dnsimple` |
-| `image.tag`                        | ✔️       | Docker image tag of the solver                  | latest tagged docker build                                |
+| `image.tag`                        | ✔️       | Docker image tag of the solver                  | latest tagged docker build              |
 | `image.pullPolicy`                 | ✔️       | Image pull policy of the solver                 | `IfNotPresent`                          |
 | `logLevel`                         |          | Set the verbosity of the solver                 | _empty_                                 |
-| `groupName`                        | ✔️       | Identifies the company that created the webhook | _empty_                       |
+| `useUnprivilegedPort`              |          | Use an unprivileged container-port for the webhook  | `true`                              |
+| `groupName`                        | ✔️       | Identifies the company that created the webhook | _empty_                                 |
 | `certManager.namespace`            | ✔️       | The namespace cert-manager was installed to     | `cert-manager`                          |
 | `certManager.serviceAccountName`   | ✔️       | The service account cert-manager runs under     | `cert-manager`                          |
 

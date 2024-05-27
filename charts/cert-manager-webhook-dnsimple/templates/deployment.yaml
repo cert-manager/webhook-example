@@ -38,12 +38,19 @@ spec:
 {{- if .Values.logLevel }}
             - --v={{ .Values.logLevel }}
 {{- end }}
+{{- if .Values.useUnprivilegedPort }}
+            - --secure-port=8443
+{{- end }}
           env:
             - name: GROUP_NAME
               value: {{ .Values.groupName | quote }}
           ports:
             - name: https
+{{- if .Values.useUnprivilegedPort }}
+              containerPort: 8443
+{{- else }}
               containerPort: 443
+{{- end }}
               protocol: TCP
           livenessProbe:
             httpGet:
