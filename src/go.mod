@@ -1,4 +1,4 @@
-module github.com/neoskop/cert-manager-webhook-dnsimple
+module github.com/puzzle/cert-manager-webhook-dnsimple
 
 go 1.22
 

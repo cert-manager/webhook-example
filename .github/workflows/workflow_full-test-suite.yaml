@@ -19,7 +19,7 @@ jobs:
     name: Build Docker image
     uses: ./.github/workflows/build-images.yaml
     with:
-      tags: >
+      tags: >-
         commit-${{ github.sha }}
         latest
     needs: code-test
