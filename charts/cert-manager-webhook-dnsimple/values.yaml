@@ -6,7 +6,7 @@
 # solve the DNS01 challenge.
 # This group name should be **unique**, hence using your own company's domain
 # here is recommended.
-groupName: acme.neoskop.de
+groupName: ""
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
@@ -23,7 +23,7 @@ clusterIssuer:
   production:
     enabled: false
 image:
-  repository: neoskop/cert-manager-webhook-dnsimple
+  repository: ghcr.io/puzzle/cert-manager-webhook-dnsimple
   tag: 0.1.2
   pullPolicy: IfNotPresent
   # pullSecret: "gcr"

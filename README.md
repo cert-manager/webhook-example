@@ -2,95 +2,148 @@
 
 A [cert-manager][2] ACME DNS01 solver webhook for [DNSimple][1].
 
+
 ## Pre-requisites
 
 - [cert-manager][2] >= 0.13 (The Helm chart uses the new API versions)
 - Kubernetes >= 1.17.x
 - Helm 3 (otherwise adjust the example below accordingly)
 
+
 ## Quickstart
 
-Take note of your DNSimple API token from the account settings in the automation tab. Run the following commands replacing the API token / account ID placeholders and email address:
+1. Take note of your DNSimple API token from the account settings in the automation tab.
 
-```bash
-$ helm repo add neoskop https://charts.neoskop.dev
-$ helm install cert-manager-webhook-dnsimple \
-    --namespace cert-manager \
-    --dry-run \
-    --set dnsimple.token='<DNSIMPLE_API_TOKEN>' \
-    --set dnsimple.accountID='<DNSIMPLE_ACCOUNT_ID>' # Only needed if using a User API token \
-    --set clusterIssuer.production.enabled=true \
-    --set clusterIssuer.staging.enabled=true \
-    --set clusterIssuer.email=email@example.com \
-    neoskop/cert-manager-webhook-dnsimple
-```
+2. Add the helm repo published under the [Github pages deployment of this repository][4]:
+    ```bash
+    $ helm repo add certmanager-webhook https://puzzle.github.io/cert-manager-webhook-dnsimple
+    ```
 
-_(Alternatively you can check out this repository and substitute neoskop/cert-manager-webhook-dnsimple with ./deploy/dnsimple)_
+3. Install the application, replacing the API token and email placeholders:
+    ```bash
+    $ helm repo add certmanager-webhook https://puzzle.github.io/cert-manager-webhook-dnsimple
+    $ helm install cert-manager-webhook-dnsimple \
+        --dry-run \ # remove once you are sure the values are correct
+        --namespace cert-manager \
+        --set dnsimple.token='<DNSIMPLE_API_TOKEN>' \
+        --set clusterIssuer.production.enabled=true \
+        --set clusterIssuer.staging.enabled=true \
+        --set clusterIssuer.email=<ISSUER_MAIL> \
+        certmanager-webhook/cert-manager-webhook-dnsimple
+    ```
+    Alternatively you can check out this repository and substitute the source of the install command with `./charts/cert-manager-webhook-dnsimple`.
 
-Afterwards issue a certificate:
+4. Afterwards you can issue a certificate:
+    ```bash
+    $ cat << EOF | kubectl apply -f -
+    apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: dnsimple-test
+    spec:
+      dnsNames:
+        - test.example.com
+      issuerRef:
+        name: cert-manager-webhook-dnsimple-staging
+        kind: ClusterIssuer
+      secretName: dnsimple-test-tls
+    EOF
+    ```
 
-```bash
-$ cat << EOF | kubectl apply -f -
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: dnsimple-test
-  namespace: default
-spec:
-  dnsNames:
-    - test.example.com
-  issuerRef:
-    name: cert-manager-webhook-dnsimple-production
-    kind: ClusterIssuer
-  secretName: dnsimple-test-tls
-EOF
-```
 
-## Options
-
+## Chart options
 The Helm chart accepts the following values:
 
 | name                               | required | description                                     | default value                           |
 | ---------------------------------- | -------- | ----------------------------------------------- | --------------------------------------- |
 | `dnsimple.token`                   | ✔️       | DNSimple API Token                              | _empty_                                 |
-| `dnsimple.accountID`               |          | DNSimple Account ID (required for User tokens)  | _empty_                                 |
-| `clusterIssuer.email`              |          | LetsEncrypt Admin Email                         | `name@example.com`                      |
+| `dnsimple.accountID`               |          | DNSimple Account ID (required when `dnsimple.token` is a user-token)  | _empty_                                 |
+| `clusterIssuer.email`              |          | LetsEncrypt Admin Email                         | _empty_                      |
 | `clusterIssuer.production.enabled` |          | Create a production `ClusterIssuer`             | `false`                                 |
 | `clusterIssuer.staging.enabled`    |          | Create a staging `ClusterIssuer`                | `false`                                 |
-| `image.repository`                 | ✔️       | Docker image for the webhook solver             | `neoskop/cert-manager-webhook-dnsimple` |
-| `image.tag`                        | ✔️       | Docker image tag of the solver                  | `latest`                                |
+| `image.repository`                 | ✔️       | Docker image for the webhook solver             | `ghcr.io/puzzle/cert-manager-webhook-dnsimple` |
+| `image.tag`                        | ✔️       | Docker image tag of the solver                  | latest tagged docker build                                |
 | `image.pullPolicy`                 | ✔️       | Image pull policy of the solver                 | `IfNotPresent`                          |
 | `logLevel`                         |          | Set the verbosity of the solver                 | _empty_                                 |
-| `groupName`                        | ✔️       | Identifies the company that created the webhook | `acme.neoskop.de`                       |
+| `groupName`                        | ✔️       | Identifies the company that created the webhook | _empty_                       |
 | `certManager.namespace`            | ✔️       | The namespace cert-manager was installed to     | `cert-manager`                          |
 | `certManager.serviceAccountName`   | ✔️       | The service account cert-manager runs under     | `cert-manager`                          |
 
-## Test suite
 
-All cert-manager webhooks have to pass the DNS01 provider conformance testing suite. To run that test suite on this plug-in download the test binaries:
+## Testing
+All cert-manager webhooks have to pass the DNS01 provider conformance testing suite.
 
+### Pull requests
+Prerequisites for PRs are implemented as  GitHub-actions. All tests should pass before a PR is merged:
+- the `cert-manager` conformance suite is run with provided kubebuilder fixtures
+- a custom test suite running on a working k8s cluster (using `minikube`) is executed as well
+
+### Local testing
+#### Test suite
+You can also run tests locally, as specified in the `Makefile`:
+
+1. Set-up `testdata/` according to its [README][3].
+    - `dnsimple-token.yaml` should be filled with a valid token (for either the sandbox or production environment)
+    - `dnsimple.env` should contain the remaining environment variables (non sensitive)
+2. Execute the test suite:
+    ```bash
+    make test
+    ```
+#### In-cluster testing
+1. Install cert-manager:
+    ```bash
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.3/cert-manager.yaml
+    ```
+2. Install the webhook:
+    ```bash
+    helm install cert-manager-webhook-dnsimple \
+        --namespace cert-manager \
+        --set dnsimple.token='<DNSIMPLE TOKEN>' \
+        --set clusterIssuer.staging.enabled=true \
+        ./charts/cert-manager-webhook-dnsimple
+    ```
+3. Test away... You can create a sample certificate to ensure the webhook is working correctly:
+    ```bash
+    kubectl apply -f - <<<EOF
+    apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+      name: dnsimple-test
+    spec:
+      dnsNames:
+        - test.example.com
+      issuerRef:
+        name: cert-manager-webhook-dnsimple-staging
+        kind: ClusterIssuer
+      secretName: dnsimple-test-tls
+    EOF
+    ```
+
+
+## Releases
+### Docker images
+Every push to `master` or on a pull-request triggers the upload of a new docker image to the GitHub Container Registry (this is configured through github actions). These images should **not considered stable** and are tagged with `commit-<hash>`. **We recommend using a specific version tag for production deployments instead.**
+
+Tagged images are considered stable, these are the ones referenced by the default helm values.
+
+### How to tag
+Create a new tag and push it to the repository. This will trigger a new container build:
 ```bash
-$ mkdir -p __main__/hack
-$ wget -O- https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-1.14.1-linux-amd64.tar.gz | tar xz --strip-components=1 -C __main__/hack
+git tag -a v0.1.0 -m "Release v0.1.0"
+git push origin v0.1.0
 ```
+We recommend the following versioning scheme: `vX.Y.Z` where `X` is the major version, `Y` the minor version and `Z` the patch version.
 
-Then set-up `testdata/dnsimple/config.json` and `testdata/dnsimple/dnsimple-token.yaml` according to the [README][3].
+### Helm releases
+Helm charts are only released when significant changes occur. We encourage users to update the underlying image versions on their own. A new release can be  triggered manually under the _actions_ tab and running `helm-release`. This only works if a new version was specified in the `Chart.yaml`. The new release will be appended to the [Github pages deployment][4].
 
-Execute the test suite replacing `TEST_ZONE_NAME` with a DNS name you have control over with your DNSimple account:
 
-```bash
-# Mind the trailing dot in the TEST_ZONE_NAME value
-$ TEST_ZONE_NAME=example.com. go test .
-```
+## Contributing
+We welcome contributions. Please open an issue or a pull request.
 
-## Release
 
-After you committed all of your changes, run the following command to tag a new version and build and push a new Docker image tag as well as a new Helm chart:
-
-```bash
-$ ./scripts/release.sh <patch|minor|major>
-```
 
 [1]: https://dnsimple.com/
 [2]: https://cert-manager.io/docs/installation/kubernetes/
-[3]: ./testdata/dnsimple/README.md
+[3]: ./testdata/README.md
+[4]: https://puzzle.github.io/cert-manager-webhook-dnsimple

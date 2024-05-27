@@ -1,0 +1,87 @@
+name: Run webhook tests in a full environment
+
+on:
+  workflow_call:
+    secrets:
+      DNSIMPLE_API_TOKEN:
+        required: true
+      DNSIMPLE_ZONE_NAME:
+        required: true
+
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+
+    - name: Start minikube
+      uses: medyagh/setup-minikube@master
+      with:
+        kubernetes-version: 1.29.3
+
+
+    - name: Install cert-manager, patch upstream dns servers, wait for readiness
+      run: |
+        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.3/cert-manager.yaml
+        # Patch cert-manager to use DNSimple's nameservers for faster propagation-checks
+        kubectl patch deployment cert-manager -n cert-manager --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--dns01-recursive-nameservers=ns1.dnsimple.com:53"}]'
+        kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-webhook -n cert-manager
+
+
+    - name: Install cert-manager-webhook-dnsimple, wait for readiness
+      env:
+        DNSIMPLE_API_TOKEN: ${{ secrets.DNSIMPLE_API_TOKEN }}
+        DNSIMPLE_ZONE_NAME: ${{ secrets.DNSIMPLE_ZONE_NAME}}
+      run: |
+        helm install cert-manager-webhook-dnsimple ./charts/cert-manager-webhook-dnsimple \
+          --namespace cert-manager \
+          --set dnsimple.token="$DNSIMPLE_API_TOKEN" \
+          --set groupName="acme.$DNSIMPLE_ZONE_NAME" \
+          --set image.repository=ghcr.io/${{ github.repository_owner }}/cert-manager-webhook-dnsimple \
+          --set clusterIssuer.staging.enabled=true \
+          --set clusterIssuer.email="noreply@$DNSIMPLE_ZONE_NAME" \
+          --set image.tag=commit-${{ github.sha }}
+        kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-webhook-dnsimple -n cert-manager
+
+
+    - name: Create sample certificate that uses the webhook
+      env:
+        DNSIMPLE_ZONE_NAME: ${{ secrets.DNSIMPLE_ZONE_NAME }}
+      run: |
+        echo """apiVersion: cert-manager.io/v1
+        kind: Certificate
+        metadata:
+          name: dnsimple-test
+          namespace: default
+        spec:
+          dnsNames:
+            - gh-action-test.$DNSIMPLE_ZONE_NAME
+          issuerRef:
+            name: cert-manager-webhook-dnsimple-staging
+            kind: ClusterIssuer
+          secretName: dnsimple-test-tls
+        """  > certificate.yaml
+        kubectl apply -f certificate.yaml
+
+
+    - name: Assert that the DNS record was created
+      env:
+        DNSIMPLE_ZONE_NAME: ${{ secrets.DNSIMPLE_ZONE_NAME }}
+      timeout-minutes: 10  
+      run: |
+        while true; do
+          if nslookup -type=TXT _acme-challenge.gh-action-test.$DNSIMPLE_ZONE_NAME ns1.dnsimple.com; then
+            break
+          fi
+          sleep 30
+        done
+
+
+    - name: Check the certificate status
+      run: |
+        kubectl wait --for=condition=ready --timeout=600s certificate/dnsimple-test
+        # this should not be necessary since the certificate is usually ready once the DNS record is propagated
+        kubectl get certificate dnsimple-test -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep True

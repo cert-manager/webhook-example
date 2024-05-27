@@ -1,0 +1,12 @@
+apiVersion: v1
+appVersion: "0.1.2"
+description: cert-manager webhook solver for ACME DNS01 challenge via DNSimple
+name: cert-manager-webhook-dnsimple
+version: 0.1.2
+home: https://github.com/puzzle/cert-manager-webhook-dnsimple
+sources:
+  - https://github.com/puzzle/cert-manager-webhook-dnsimple
+maintainers:
+  - name: Puzzle ITC
+    email: container@puzzle.ch
+    url: https://www.puzzle.ch
