@@ -1,0 +1,13 @@
+name: Dependency Automation
+on: pull_request
+
+permissions:
+  pull-requests: write
+  contents: write
+  issues: write
+
+jobs:
+  dependencies:
+    name: Dependencies
+    uses: ibm-skills-network/.github/.github/workflows/dependency-auto-merge.yml@main
+    secrets: inherit
