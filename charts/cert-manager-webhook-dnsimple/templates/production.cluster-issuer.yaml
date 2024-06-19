@@ -22,6 +22,6 @@ spec:
               key: token
               name: {{ include "dnsimple-webhook.tokenSecretName" . }}
             accountID: {{ .Values.dnsimple.accountID | quote }}
-          groupName: {{ .Values.groupName }}
+          groupName: {{ include "dnsimple-webhook.api-group" . }}
           solverName: dnsimple
 {{- end -}}

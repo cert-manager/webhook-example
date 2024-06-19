@@ -2,7 +2,7 @@
 apiVersion: {{ $APIRegistrationAPIVersion }}
 kind: APIService
 metadata:
-  name: v1alpha1.{{ .Values.groupName }}
+  name: v1alpha1.{{ include "dnsimple-webhook.api-group" . }}
   labels:
     app: {{ include "dnsimple-webhook.name" . }}
     chart: {{ include "dnsimple-webhook.chart" . }}
@@ -11,7 +11,7 @@ metadata:
   annotations:
     cert-manager.io/inject-ca-from: "{{ .Release.Namespace }}/{{ include "dnsimple-webhook.servingCertificate" . }}"
 spec:
-  group: {{ .Values.groupName }}
+  group: {{ include "dnsimple-webhook.api-group" . }}
   groupPriorityMinimum: 1000
   versionPriority: 15
   service:
