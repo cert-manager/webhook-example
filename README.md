@@ -20,7 +20,7 @@ Table of Contents
 Follow the [instructions](https://cert-manager.io/docs/installation/) using the cert manager documentation to install it within your cluster.
 On kubernetes (>= 1.21), the process is pretty straightforward if you use the following commands:
 ```bash
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.6.1/cert-manager.yaml
 ```
 **NOTES**: Check the cert-manager releases note to verify which [version of certmanager](https://cert-manager.io/docs/installation/supported-releases/) is supported with Kubernetes or OpenShift
 ### The Webhook

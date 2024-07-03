@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jetstack/cert-manager/test/acme/dns"
+	dns "github.com/cert-manager/cert-manager/test/acme"
 	"github.com/stretchr/testify/assert"
 )
 
