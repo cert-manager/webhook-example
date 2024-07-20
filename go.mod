@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.22.4
 
 require (
-	github.com/IBM-Cloud/bluemix-go v0.0.0-20240423071914-9e96525baef4
+	github.com/IBM-Cloud/bluemix-go v0.0.0-20240719075425-078fcb3a55be
 	github.com/cert-manager/cert-manager v1.15.1
 	k8s.io/apiextensions-apiserver v0.30.3
 	k8s.io/client-go v0.30.3
