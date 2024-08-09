@@ -22,7 +22,7 @@ users to quickly iterate and test out new integrations, and then packaging
 those up themselves as 'extensions' to cert-manager.
 
 We can also then provide a standardised 'testing framework', or set of
-conformance tests, which allow us to validate the a DNS provider works as
+conformance tests, which allow us to validate that a DNS provider works as
 expected.
 
 ## Creating your own webhook
