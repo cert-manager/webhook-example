@@ -25,7 +25,8 @@ jobs:
 
     - name: Install cert-manager, patch upstream dns servers, wait for readiness
       run: |
-        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.3/cert-manager.yaml
+        echo "Target cert-manager version: ${{ vars.TARGET_CERT_MANAGER_VERSION }}"
+        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${{ vars.TARGET_CERT_MANAGER_VERSION }}/cert-manager.yaml
         # Patch cert-manager to use DNSimple's nameservers for faster propagation-checks
         kubectl patch deployment cert-manager -n cert-manager --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--dns01-recursive-nameservers=ns1.dnsimple.com:53"}]'
         kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-webhook -n cert-manager
@@ -44,8 +45,42 @@ jobs:
           --set clusterIssuer.staging.enabled=true \
           --set clusterIssuer.email="noreply@$DNSIMPLE_ZONE_NAME" \
           --set image.tag=commit-${{ github.sha }}
-        kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-webhook-dnsimple -n cert-manager
 
+        helm -n cert-manager list
+
+        max_wait_time_seconds=600
+        sleep_between_iterations=10
+
+        start=$(date +%s)
+        end=$(( $start + $max_wait_time_seconds ))
+
+        echo ""
+        echo "Awaiting succesful deployment for max ${max_wait_time_seconds} seconds or until $(date --date="@$end")"
+        while [ $(date +%s) -le $end ]; do
+            echo "[i] New iteration at $(date +%s)"
+            kubectl -n cert-manager get po
+
+            if [ $(kubectl -n cert-manager get po | grep Crash | wc -l) -gt 0 ]; then
+                echo "::error title=Deployment is failing::At least one pod is crashing"
+                for pod in $(kubectl -n cert-manager get po | grep Crash | awk '{print $1}'); do
+                    echo "Logs for pod '$pod'"
+                    kubectl -n cert-manager logs $pod
+                done
+
+                exit 1
+            fi
+
+            replicas=$(kubectl -n cert-manager get deploy/cert-manager-webhook-dnsimple -o=jsonpath={.status.unavailableReplicas})
+            if [[ $([ -z $replicas ]) || $replicas -gt 0 ]]; then
+                sleep $sleep_between_iterations
+            else
+                echo "Replicas of deployment cert-manager-webhook-dnsimple have become available."
+                exit 0
+            fi
+        done
+
+        echo "::error title=Deployment timed out::Have timed out waiting for good deployment health"
+        exit 1
 
     - name: Create sample certificate that uses the webhook
       env:
