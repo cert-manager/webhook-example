@@ -53,9 +53,11 @@ jobs:
 
         start=$(date +%s)
         end=$(( $start + $max_wait_time_seconds ))
+
+        echo ""
         echo "Awaiting succesful deployment for max ${max_wait_time_seconds} seconds or until $(date --date="@$end")"
         while [ $(date +%s) -le $end ]; do
-            echo "[i] Iteration now: $(date +%s)"
+            echo "[i] New iteration at $(date +%s)"
             kubectl -n cert-manager get po
 
             if [ $(kubectl -n cert-manager get po | grep Crash | wc -l) -gt 0 ]; then
@@ -68,7 +70,8 @@ jobs:
                 exit 1
             fi
 
-            if [ $(kubectl -n cert-manager get deploy/cert-manager-webhook-dnsimple -o=jsonpath={.status.unavailableReplicas}) -gt 0 ]; then
+            replicas=$(kubectl -n cert-manager get deploy/cert-manager-webhook-dnsimple -o=jsonpath={.status.unavailableReplicas})
+            if [[ $([ -z $replicas ]) || $replicas -gt 0 ]]; then
                 sleep $sleep_between_iterations
             else
                 echo "Replicas of deployment cert-manager-webhook-dnsimple have become available."
