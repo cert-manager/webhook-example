@@ -43,7 +43,7 @@ spec:
 {{- end }}
           env:
             - name: GROUP_NAME
-              value: {{ .Values.groupName | quote }}
+              value: {{ include "dnsimple-webhook.api-group" . | quote }}
           ports:
             - name: https
 {{- if .Values.useUnprivilegedPort }}

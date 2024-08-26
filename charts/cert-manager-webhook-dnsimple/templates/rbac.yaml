@@ -65,7 +65,7 @@ metadata:
     heritage: {{ .Release.Service }}
 rules:
   - apiGroups:
-      - {{ .Values.groupName }}
+      - {{ include "dnsimple-webhook.api-group" . }}
     resources:
       - '*'
     verbs:
