@@ -1,7 +1,7 @@
-
 # groupName sets the API group name for the API service that registers this webhook service.
-# If you wish to customize this name, uncomment line and set the value to an FQDN, i.e. acme.company.com
-#groupName: ""
+# It will be used when specifying an issuer for a (Cluster)Issuer object.
+# When customizing, provide an FQDN, for example acme.my-company.com.
+groupName: "acme.dnsimple.com"
 
 certManager:
   namespace: cert-manager
