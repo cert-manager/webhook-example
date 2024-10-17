@@ -1,5 +1,4 @@
-{{- $APIRegistrationAPIVersion := ternary "apiregistration.k8s.io/v1" "apiregistration.k8s.io/v1beta1" (.Capabilities.APIVersions.Has "apiregistration.k8s.io/v1") -}}
-apiVersion: {{ $APIRegistrationAPIVersion }}
+apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
   name: v1alpha1.{{ include "dnsimple-webhook.api-group" . }}
