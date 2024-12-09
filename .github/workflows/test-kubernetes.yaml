@@ -20,7 +20,7 @@ jobs:
     - name: Start minikube
       uses: medyagh/setup-minikube@master
       with:
-        kubernetes-version: 1.29.3
+        kubernetes-version: 1.31.3
 
 
     - name: Install cert-manager, patch upstream dns servers, wait for readiness
