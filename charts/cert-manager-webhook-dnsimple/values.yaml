@@ -20,7 +20,7 @@ clusterIssuer:
     enabled: false
 image:
   repository: ghcr.io/puzzle/cert-manager-webhook-dnsimple
-  tag: v0.1.5
+  tag: v0.1.6
   pullPolicy: IfNotPresent
   # pullSecret: "gcr"
 nameOverride: ""
