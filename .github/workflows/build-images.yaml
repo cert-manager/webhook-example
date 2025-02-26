@@ -33,7 +33,7 @@ jobs:
 
       - name: Setup ko
         # KO is a tool for building go container images https://ko.build/
-        uses: ko-build/setup-ko@v0.7
+        uses: ko-build/setup-ko@v0.8
         # KO is configured to use GHCR as the registry
 
 
