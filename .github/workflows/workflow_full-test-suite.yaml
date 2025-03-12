@@ -1,12 +1,14 @@
 name: Run full test suite
 
 on:
-  push:
-    branches:
-    - master
+  # To prevent this time intesive suite from running redundandtly, it will only run on PRs.
+  # If a PR is merged, it also creates a push and thus this workflow unnecessarily runs again.
   pull_request:
     branches:
     - master
+    paths:
+    - '.github/workflows/**'
+    - 'src/**'
   
 jobs:
   code-test:

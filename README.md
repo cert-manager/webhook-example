@@ -75,26 +75,34 @@ The Helm chart accepts the following values:
 All cert-manager webhooks have to pass the DNS01 provider conformance testing suite.
 
 ### Pull requests
-Prerequisites for PRs are implemented as  GitHub-actions. All tests should pass before a PR is merged:
-- the `cert-manager` conformance suite is run with provided kubebuilder fixtures
-- a custom test suite running on a working k8s cluster (using `minikube`) is executed as well
+Prerequisites for PRs are implemented as GitHub-actions. All tests should pass before a PR is merged:
+- The `cert-manager` conformance suite is run with provided kubebuilder fixtures
+- A custom test suite running on a working k8s cluster (using `minikube`) is executed as well
 
 ### Local testing
 #### Test suite
-You can also run tests locally, as specified in the `Makefile`:
+Tests can be run locally according to the `Makefile`:
 
-1. Set-up `testdata/` according to its [README][3].
-    - `dnsimple-token.yaml` should be filled with a valid token (for either the sandbox or production environment)
-    - `dnsimple.env` should contain the remaining environment variables (non sensitive)
-2. Execute the test suite:
+1. Set up `testdata/` according to its [README][3]
+  - `dnsimple-token.yaml` should be filled with a valid token (for either the sandbox or production environment)
+
+2. Set env var `TEST_ZONE_NAME`, adding a trailing dot
+  - `export TEST_ZONE_NAME="<zone>."`
+ 
+3. Execute the test suite:
     ```bash
     make test
     ```
+
+> [!NOTE]
+> Kubebuilder will always use the latest version available.
+
 #### In-cluster testing
 1. Install cert-manager:
     ```bash
     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.3/cert-manager.yaml
     ```
+
 2. Install the webhook:
     ```bash
     helm install cert-manager-webhook-dnsimple \
@@ -103,6 +111,7 @@ You can also run tests locally, as specified in the `Makefile`:
         --set clusterIssuer.staging.enabled=true \
         ./charts/cert-manager-webhook-dnsimple
     ```
+    
 3. Test away... You can create a sample certificate to ensure the webhook is working correctly:
     ```bash
     kubectl apply -f - <<<EOF
@@ -120,10 +129,16 @@ You can also run tests locally, as specified in the `Makefile`:
     EOF
     ```
 
+#### GitHub Actions
+Each PR is vetted against a full test suite that tests changes against multiple versions of both Kubernetes and Cert-Manager using a matrix strategy.  
+Generally, tested k8s versions are the [last 3 supported major versions](https://kubernetes.io/releases/).  
+Cert-Manager is tested uisng the [last 2 supported versions](https://cert-manager.io/docs/releases/).
+
 
 ## Releases
 ### Docker images
-Every push to `master` or on a pull-request triggers the upload of a new docker image to the GitHub Container Registry (this is configured through github actions). These images should **not considered stable** and are tagged with `commit-<hash>`. **We recommend using a specific version tag for production deployments instead.**
+Every push to `master` or on a pull-request triggers the upload of a new docker image to the GitHub Container Registry (this is configured through github actions).  
+These images should **not be considered stable** and are tagged with `commit-<hash>`. **We recommend using a specific version tag for production deployments instead.**
 
 Tagged images are considered stable, these are the ones referenced by the default helm values.
 

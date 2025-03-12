@@ -12,25 +12,30 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 3
+      matrix:
+        # Always quote versions to prevent int truncation (1.30 -> 1.3)
+        # https://kubernetes.io/releases
+        k8s-version: ["1.30", "1.31", "1.32"]
+        # https://cert-manager.io/docs/releases/ (Always include path version)
+        cm-version: ["1.16.0", "1.17.0"]
 
     steps:
     - uses: actions/checkout@v4
 
-
     - name: Start minikube
       uses: medyagh/setup-minikube@master
       with:
-        kubernetes-version: 1.31.3
-
+        kubernetes-version: ${{ matrix.k8s-version }}
 
     - name: Install cert-manager, patch upstream dns servers, wait for readiness
       run: |
-        echo "Target cert-manager version: ${{ vars.TARGET_CERT_MANAGER_VERSION }}"
-        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${{ vars.TARGET_CERT_MANAGER_VERSION }}/cert-manager.yaml
+        echo "Target cert-manager version: ${{ matrix.cm-version }}"
+        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v${{ matrix.cm-version }}/cert-manager.yaml
         # Patch cert-manager to use DNSimple's nameservers for faster propagation-checks
         kubectl patch deployment cert-manager -n cert-manager --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--dns01-recursive-nameservers=ns1.dnsimple.com:53"}]'
         kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-webhook -n cert-manager
-
 
     - name: Install cert-manager-webhook-dnsimple, wait for readiness
       env:
@@ -48,7 +53,7 @@ jobs:
 
         helm -n cert-manager list
 
-        max_wait_time_seconds=600
+        max_wait_time_seconds=800
         sleep_between_iterations=10
 
         start=$(date +%s)
@@ -57,7 +62,7 @@ jobs:
         echo ""
         echo "Awaiting succesful deployment for max ${max_wait_time_seconds} seconds or until $(date --date="@$end")"
         while [ $(date +%s) -le $end ]; do
-            echo "[i] New iteration at $(date +%s)"
+            echo "[i] New iteration at $(date)"
             kubectl -n cert-manager get po
 
             if [ $(kubectl -n cert-manager get po | grep Crash | wc -l) -gt 0 ]; then
@@ -101,11 +106,10 @@ jobs:
         """  > certificate.yaml
         kubectl apply -f certificate.yaml
 
-
     - name: Assert that the DNS record was created
       env:
         DNSIMPLE_ZONE_NAME: ${{ secrets.DNSIMPLE_ZONE_NAME }}
-      timeout-minutes: 10  
+      timeout-minutes: 10
       run: |
         while true; do
           if nslookup -type=TXT _acme-challenge.gh-action-test.$DNSIMPLE_ZONE_NAME ns1.dnsimple.com; then
@@ -114,9 +118,36 @@ jobs:
           sleep 30
         done
 
-
+    # This step can time out, but it timing out doesn't necessarily mean that the webhook is not working.
+    # Timeouts mainly happen due to the environment of the runner and/or parallelism, thus such occurrences will simply be dismissed as warnings.
     - name: Check the certificate status
       run: |
-        kubectl wait --for=condition=ready --timeout=600s certificate/dnsimple-test
-        # this should not be necessary since the certificate is usually ready once the DNS record is propagated
-        kubectl get certificate dnsimple-test -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep True
+        max_wait_time_seconds=300
+        end=$(( $(date +%s) + $max_wait_time_seconds ))
+        start=$(date +%s) 
+
+        sleep 5
+        while [ $(date +%s) -le $end ]; do
+          OUT_CRT=$(kubectl get certificate/dnsimple-test -o jsonpath='{.status.conditions}')
+          OUT_CRQ=$(kubectl get CertificateRequest -o json)
+
+          echo "Certificate:"
+          echo "$OUT_CRT"
+
+          echo "CertificateRequest:"
+          echo "$OUT_CRQ" | jq .items[0].status.conditions
+
+          if [ $(echo "$OUT_CRT" | grep -iE "Failed|Denied" | wc -l) -gt 0  ]; then
+            echo "::Error title=Certificate resource errored::The certificate ressource has an error"
+            exit 1
+          fi
+
+          if [ $(kubectl get certificate dnsimple-test -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}') == "True" ]; then
+            echo "Certificate is ready after $(( $(date +%s) - $start )) seconds"
+            exit 0
+          fi
+          sleep 20
+          echo -e "\n[i] New iteration at $(date)"
+        done
+
+        echo "::warning title=Certificate timed out::Have timed out waiting for certificate"

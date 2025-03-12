@@ -1,7 +1,9 @@
 GO ?= $(shell which go)
 OS ?= $(shell $(GO) env GOOS)
 ARCH ?= $(shell $(GO) env GOARCH)
-KUBE_VERSION=1.25.0
+
+# Available versions: https://storage.googleapis.com/kubebuilder-tools
+KUBE_VERSION=$(shell curl -s https://storage.googleapis.com/kubebuilder-tools | grep -oP 'kubebuilder-tools-\K[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -n 1 || echo "1.30.0")
 
 # required by go tests
 export TEST_ASSET_ETCD=../_test/kubebuilder/etcd
