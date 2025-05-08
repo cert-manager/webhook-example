@@ -6,5 +6,12 @@
     ":timezone(Europe/Zurich)",
     "group:kubernetes"
   ],
-  "schedule": "on friday and saturday"
+  "schedule": "on friday and saturday",
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true
+    }
+  ]
 }

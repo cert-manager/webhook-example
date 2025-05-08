@@ -16,6 +16,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+        # fetch-tags: true - from experience, this usually results in errors
+        # > Also see: https://github.com/actions/checkout/issues/1467
 
       - name: Configure Git
         run: |
@@ -28,3 +30,16 @@ jobs:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
           charts_dir: ./charts
+
+      - name: Add commit digest to GH release
+        run: |
+          git fetch --tags
+          LAST_TAG=$(git tag --list 'cert-manager-webhook-dnsimple*' --sort=-v:refname | sed -n '2p')
+          CURRENT_TAG=$(git tag --list 'cert-manager-webhook-dnsimple*' --sort=-v:refname | sed -n '1p')
+          COMMITS=$(git log ${LAST_TAG}..${CURRENT_TAG} --oneline | sed 's/^/- /')
+          
+          # Workaround to get newlines working
+          echo -e "### Changes since \`${LAST_TAG}\`\n\n${COMMITS}" > msg
+          gh release edit ${CURRENT_TAG} --notes "$(cat msg)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
