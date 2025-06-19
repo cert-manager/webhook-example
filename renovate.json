@@ -9,8 +9,15 @@
   "schedule": "on friday and saturday",
   "packageRules": [
     {
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": [ "patch" ],
       "matchCurrentVersion": "!/^0/",
+      "labels": [ "patch" ],
+      "automerge": true
+    },
+    {
+      "matchUpdateTypes": [ "minor" ],
+      "matchCurrentVersion": "!/^0/",
+      "labels": [ "minor" ],
       "automerge": true
     }
   ]
