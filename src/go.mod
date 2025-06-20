@@ -5,7 +5,7 @@ go 1.23.8
 toolchain go1.24.4
 
 require (
-	github.com/cert-manager/cert-manager v1.18.0
+	github.com/cert-manager/cert-manager v1.18.1
 	github.com/dnsimple/dnsimple-go v1.7.0
 	k8s.io/apiextensions-apiserver v0.32.3
 	k8s.io/apimachinery v0.32.3
