@@ -2,7 +2,6 @@
 # It will be used when specifying an issuer for a (Cluster)Issuer object.
 # When customizing, provide an FQDN, for example acme.my-company.com.
 groupName: "acme.dnsimple.com"
-
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
@@ -20,7 +19,7 @@ clusterIssuer:
     enabled: false
 image:
   repository: ghcr.io/puzzle/cert-manager-webhook-dnsimple
-  tag: v0.1.8
+  tag: v0.1.9
   pullPolicy: IfNotPresent
   # pullSecret: "gcr"
 nameOverride: ""
