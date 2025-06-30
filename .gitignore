@@ -17,3 +17,7 @@ cert-manager-webhook-example
 # Make artifacts
 _out
 _test
+
+# IDE specific files
+.idea/
+.vscode/
