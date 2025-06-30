@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	"github.com/pluralsh/plural-certmanager-webhook/pkg/cmd"
+	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
 	"github.com/pluralsh/plural-certmanager-webhook/plural"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/rest"
