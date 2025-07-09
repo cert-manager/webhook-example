@@ -1,0 +1,236 @@
+name: Automated patch release
+
+on:
+  schedule:
+    - cron: '0 12 1 * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check-prs.outputs.has_changes }}
+      non_patch_prs: ${{ steps.check-prs.outputs.non_patch_prs }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # We only continue if the last release was actually a month ago
+      - name: Check age of last release
+        id: check-age
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE=$(gh release view --json name,createdAt)
+          CREATED_AT=$(echo "$RELEASE" | jq -r .createdAt)
+          CREATED_TIMESTAMP=$(date -d "$CREATED_AT" +%s)
+          CURRENT_TIMESTAMP=$(date +%s)
+          DAYS_DIFF=$(( ($CURRENT_TIMESTAMP - $CREATED_TIMESTAMP) / 86400 ))
+
+          echo "Latest release $(echo "$RELEASE" | jq .name) was published at $CREATED_AT, $DAYS_DIFF days ago."
+          echo "skip=$([ $DAYS_DIFF -lt 30 ] && echo "true" || echo "false")" >> "$GITHUB_OUTPUT"
+
+      # Any PR since last month that is not authored by renovate and does NOT have a "patch" label will cause this run to be skipped.
+      # Renovate automerges minor changes as well, but we consider such as patches as it's only affects packages.
+      - name: Check for merged PRs since last release
+        id: check-prs
+        if: ${{ steps.check-age.outputs.skip != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LAST_RELEASE=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+          if [ "$LAST_RELEASE" = "none" ]; then
+            MERGED_PRS=$(gh pr list --state merged --limit 1 --json number)
+          else
+            MERGED_PRS=$(gh pr list --state merged --base ${{ github.event.repository.default_branch }} --search "merged:>=$(git log -1 --format=%aI $LAST_RELEASE | cut -d'T' -f1)" --json author,title,labels,number)
+          fi
+
+          if [ "$(echo $MERGED_PRS | jq '. | length')" -gt 0 ]; then
+            FILTERED_PRS=$(echo "$MERGED_PRS" | jq '[.[] | select(.author.login != "app/renovate") | select((.labels | length < 1) or (.labels | all(.name != "patch")))]')
+            FILTERED_PRS_AMOUNT=$(echo $FILTERED_PRS | jq length)
+            if [ "$FILTERED_PRS_AMOUNT" -gt 0 ]; then
+              echo "::warning title=Non-patch PRs found::A total of $FILTERED_PRS_AMOUNT PRs that are possibly not patch releases have been found"
+              echo $FILTERED_PRS | jq '.[] | {title: .title, author: "\(.author.login) (\(.author.name))", url: "https://github.com/puzzle/cert-manager-webhook-dnsimple/pull/\(.number)", number: .number}'
+              
+              echo "has_changes=false" >> "$GITHUB_OUTPUT"
+              echo "non_patch_prs=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            
+            echo "Has changes"
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          echo "Has no changes"
+          echo "has_changes=false" >> "$GITHUB_OUTPUT"
+
+      - name: Notify if bad
+        id: notify-abort
+        if: ${{ steps.check-prs.outputs.has_changes == 'false' && steps.check-prs.outputs.non_patch_prs == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          THIS_RUN=$(gh run --repo ${{ github.repository }} view ${{ github.run_id }} --json jobs --jq '.jobs[] | select(.name == "${{ github.job }}") | .url')
+          MSG=$(cat <<EOF
+          :warning: Did not create an automated patch release because it could contain PRs with changes more impactful than just a patch.
+          [Check the logs of the latest run](${THIS_RUN}#step:4:1) please and manually create a release after review :isforme:
+          EOF
+          )
+          
+          BODY=$(cat .github/workflows/rk_body.json | jq ".text = \"$MSG\"")
+          curl -X POST -H 'Content-Type: application/json' --data "$BODY" ${{ secrets.RK_WEBHOOK_URL }}
+
+  update:
+    needs: check
+    if: ${{ needs.check.outputs.has_changes == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      chart: ${{ steps.new-versions.outputs.chart }}
+      app: ${{ steps.new-versions.outputs.app }}
+      tag: ${{ steps.new-versions.outputs.tag }}
+    steps:
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_SECRET }}
+  
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          token: ${{ steps.app-token.outputs.token }}
+      
+      # fetch-tags: true is broken
+      - name: Fetch all tags
+        run: git fetch --depth=1 --tags
+
+      - name: Get new versions
+        id: new-versions
+        run: |
+          bump_patch() {
+            clean=$(echo "$1" | sed 's|[v\"]||g')
+
+            major=$(echo "$clean" | cut -d. -f1)
+            minor=$(echo "$clean" | cut -d. -f2)
+            patch=$(echo "$clean" | cut -d. -f3)
+
+            patch=$((patch + 1))
+
+            echo "$major.$minor.$patch"
+          }
+
+          CHART_VERSION=$(bump_patch $(cat charts/cert-manager-webhook-dnsimple/Chart.yaml | grep "version:" | awk '{print $2}'))
+          APP_VERSION=$(echo "v$(bump_patch $(cat charts/cert-manager-webhook-dnsimple/Chart.yaml | grep 'appVersion:' | awk '{print $2}'))")
+          TAG=$(echo "v$(bump_patch $(git tag -l 'v*' --sort=committerdate | tail -n 1))")
+
+          echo -e "New app version: $APP_VERSION\nNew chart version: $CHART_VERSION\nNew tag: $TAG"
+
+          echo "chart=$CHART_VERSION" >> "$GITHUB_OUTPUT"
+          echo "app=$APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Update versions
+        id: update-versions
+        run: |
+          export TERM=xterm-color
+          yq e '.appVersion = "${{ steps.new-versions.outputs.app }}"' -i charts/cert-manager-webhook-dnsimple/Chart.yaml
+          yq e '.version = "${{ steps.new-versions.outputs.chart }}"' -i charts/cert-manager-webhook-dnsimple/Chart.yaml
+          yq e '.image.tag = "${{ steps.new-versions.outputs.tag }}"' -i charts/cert-manager-webhook-dnsimple/values.yaml
+
+          git diff
+
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git add -u
+
+          git commit -m "chore: Update versions for chart release ${{ steps.new-versions.outputs.chart }}"
+          git tag -a "${{ steps.new-versions.outputs.tag }}" -m "Release ${{ steps.new-versions.outputs.tag }}"
+
+          echo "Git tags AFTER creating our own (${{ steps.new-versions.outputs.tag }})"
+          git tag
+          
+          git push && git push origin "${{ steps.new-versions.outputs.tag }}"
+
+      - name: Await docker build
+        id: docker-build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |          
+          echo "Waiting for release workflow to complete..."
+          sleep 5
+
+          # ID can be derived using 'gh workflow list'
+          # The ID below is of the "Build tagged Docker image" workflow
+          WORKFLOW_ID=99918806
+          RUN_DETAILS=$(gh run list --workflow="$WORKFLOW_ID" --branch="${{ steps.new-versions.outputs.tag }}" --json conclusion,status,url,databaseId)
+          echo $RUN_DETAILS | jq -r .[0].url
+
+          for i in {1..30}; do
+            RUN_DETAILS=$(gh run list --workflow="$WORKFLOW_ID" --branch="${{ steps.new-versions.outputs.tag }}" --json conclusion,status,url,databaseId)
+            if [ $(echo $RUN_DETAILS | jq length) -gt 0 ]; then
+              RUN_ID=$(echo $RUN_DETAILS | jq -r .[0].databaseId)
+              STATUS=$(gh run view "$RUN_ID" --json conclusion --jq .conclusion)
+              if [ "$STATUS" = "success" ]; then
+                echo "Docker build workflow has concluded"
+                exit 0
+              elif [ "$STATUS" = "failure" ]; then
+                echo "::error title=Docker build failed::Docker build action has failed"
+                exit 1
+              fi
+            fi
+            sleep 20
+          done
+
+          echo "::error title=Docker build timed out::Timed out awaiting docker build action"
+          exit 1
+  
+  trigger-release:
+    needs: update
+    uses: ./.github/workflows/helm-release.yaml
+    with:
+      release-body-addendum: "Automated release"
+
+  # Only notify on success or failure
+  notify:
+    needs:
+      - update
+      - check
+    if: ${{ always() && needs.check.outputs.non_patch_prs != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Notify status
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        THIS_RUN=$(gh run --repo ${{ github.repository }} view ${{ github.run_id }} --json jobs --jq '.jobs[] | select(.name == "${{ github.job }}") | .url')
+        
+        CONCLUSION=$(gh run view ${{ github.run_id }} --json jobs | jq -r '.jobs[] | select(.name == "update") | .conclusion')
+        TRIGGER_CONCLUSION=$(gh run view ${{ github.run_id }} --json jobs | jq -r '.jobs[] | select(.name | startswith("trigger-release")) | .conclusion')
+        echo "Update job conclusion: $CONCLUSION"
+        echo "Trigger-release job conclusion: $TRIGGER_CONCLUSION"
+        
+        if [ "$CONCLUSION" == "success" -a "$TRIGGER_CONCLUSION" == "success" ]; then
+          MSG=$(cat <<EOF
+        :white_check_mark: Automated patch release completed successfully!
+        New chart version: ${{ needs.update.outputs.chart }}
+        New app version: ${{ needs.update.outputs.app }}
+        New tag: ${{ needs.update.outputs.tag }}
+        EOF
+        )
+
+        elif [ "$CONCLUSION" == "failure" -o "$TRIGGER_CONCLUSION" == "failure" ]; then
+          MSG=":x: Automated patch release failed. Please [check the logs]($THIS_RUN)."
+        else
+          MSG=":warning: Automated patch release possibly failed! Please [check the logs]($THIS_RUN)."
+        fi
+        
+        if [ -n "$MSG" ]; then
+          BODY=$(cat .github/workflows/rk_body.json | jq ".text = \"$MSG\"")
+          curl -X POST -H 'Content-Type: application/json' --data "$BODY" ${{ secrets.RK_WEBHOOK_URL }}
+        fi
