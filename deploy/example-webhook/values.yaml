@@ -13,8 +13,8 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: mycompany/webhook-image
-  tag: latest
+  repository: tevildo/cert-manager-webhook-nearlyfreespeech
+  tag: 0.0.7
   pullPolicy: IfNotPresent
 
 nameOverride: ""

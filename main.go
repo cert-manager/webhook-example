@@ -1,15 +1,22 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"github.com/MartinWilkerson/cert-manager-webhook-nearlyfreespeech/dns"
+	acme_v1alpha1 "github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/cmd"
+	meta_v1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 )
 
 var GroupName = os.Getenv("GROUP_NAME")
@@ -40,7 +47,7 @@ type customDNSProviderSolver struct {
 	// 3. uncomment the relevant code in the Initialize method below
 	// 4. ensure your webhook's service account has the required RBAC role
 	//    assigned to it for interacting with the Kubernetes APIs you need.
-	//client kubernetes.Clientset
+	client *kubernetes.Clientset
 }
 
 // customDNSProviderConfig is a structure that is used to decode into when
@@ -64,7 +71,8 @@ type customDNSProviderConfig struct {
 	// `issuer.spec.acme.dns01.providers.webhook.config` field.
 
 	//Email           string `json:"email"`
-	//APIKeySecretRef v1alpha1.SecretKeySelector `json:"apiKeySecretRef"`
+	Login           string                    `json:"login"`
+	APIKeySecretRef meta_v1.SecretKeySelector `json:"apiKeySecretRef"`
 }
 
 // Name is used as the name for this DNS solver when referencing it on the ACME
@@ -74,7 +82,7 @@ type customDNSProviderConfig struct {
 // within a single webhook deployment**.
 // For example, `cloudflare` may be used as the name of a solver.
 func (c *customDNSProviderSolver) Name() string {
-	return "my-custom-solver"
+	return "nearlyfreespeech"
 }
 
 // Present is responsible for actually presenting the DNS record with the
@@ -82,17 +90,28 @@ func (c *customDNSProviderSolver) Name() string {
 // This method should tolerate being called multiple times with the same value.
 // cert-manager itself will later perform a self check to ensure that the
 // solver has correctly configured the DNS provider.
-func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
+func (c *customDNSProviderSolver) Present(ch *acme_v1alpha1.ChallengeRequest) error {
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
 	}
 
 	// TODO: do something more useful with the decoded configuration
-	fmt.Printf("Decoded configuration %v", cfg)
+	log.Printf("Decoded configuration %v", cfg)
+	log.Printf("ResolvedZone: '%v'. ResolvedFQDN: '%v'", ch.ResolvedZone, ch.ResolvedFQDN)
 
 	// TODO: add code that sets a record in the DNS provider's console
-	return nil
+	apiKeySecret, err := c.client.CoreV1().Secrets(ch.ResourceNamespace).Get(context.TODO(), cfg.APIKeySecretRef.Name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	apiKeyData := apiKeySecret.Data[cfg.APIKeySecretRef.Key]
+	apiKey := string(apiKeyData)
+
+	dnsName := strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
+	domain := strings.TrimSuffix(ch.ResolvedZone, ".")
+
+	return dns.SetTXTRecord(domain, dnsName, ch.Key, cfg.Login, apiKey)
 }
 
 // CleanUp should delete the relevant TXT record from the DNS provider console.
@@ -101,9 +120,22 @@ func (c *customDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 // value provided on the ChallengeRequest should be cleaned up.
 // This is in order to facilitate multiple DNS validations for the same domain
 // concurrently.
-func (c *customDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	// TODO: add code that deletes a record from the DNS provider's console
-	return nil
+func (c *customDNSProviderSolver) CleanUp(ch *acme_v1alpha1.ChallengeRequest) error {
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+
+	apiKeySecret, err := c.client.CoreV1().Secrets(ch.ResourceNamespace).Get(context.TODO(), cfg.APIKeySecretRef.Name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	apiKeyData := apiKeySecret.Data[cfg.APIKeySecretRef.Key]
+	apiKey := string(apiKeyData)
+
+	dnsName := strings.TrimSuffix(ch.ResolvedFQDN, "."+ch.ResolvedZone)
+
+	return dns.ClearTXTRecord(ch.ResolvedZone, dnsName, ch.Key, cfg.Login, apiKey)
 }
 
 // Initialize will be called when the webhook first starts.
@@ -119,12 +151,12 @@ func (c *customDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stop
 	///// UNCOMMENT THE BELOW CODE TO MAKE A KUBERNETES CLIENTSET AVAILABLE TO
 	///// YOUR CUSTOM DNS PROVIDER
 
-	//cl, err := kubernetes.NewForConfig(kubeClientConfig)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//c.client = cl
+	cl, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return err
+	}
+
+	c.client = cl
 
 	///// END OF CODE TO MAKE KUBERNETES CLIENTSET AVAILABLE
 	return nil
