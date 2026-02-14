@@ -5,7 +5,7 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: ghcr.io/pr0ton11/cert-manager-desec-webhook:latest
+  repository: ghcr.io/pr0ton11/cert-manager-desec-webhook
   tag: latest
   pullPolicy: IfNotPresent
 
