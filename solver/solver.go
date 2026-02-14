@@ -18,8 +18,7 @@ import (
 type DeSECDNSProviderSolverConfig struct {
 	// Reference to the kubernetes secret containing the API token for deSEC
 	APIKeySecretRef v1.SecretKeySelector `json:"apiKeySecretRef"`
-	// Reference to the kubernetes namespace containing the secret
-	APIKeySecretRefNamespace string `json:"apiKeySecretRefNamespace"`
+	// A global namespace (e.g APIKeySecretRefNamespace is not required, because ClusterIssuer provides the cert-manager namespace as default value for global issuers)
 }
 
 // A DNS-01 challenge solver for the DeSEC DNS Provider
@@ -35,6 +34,7 @@ func (s *DeSECDNSProviderSolver) Name() string {
 
 // Initializes a new client
 func (s *DeSECDNSProviderSolver) getClient(config *apiextensionsv1.JSON, namespace string) (*desec.Client, error) {
+	// Check if configuration is empty or was not parsed
 	if config == nil {
 		return nil, fmt.Errorf("missing configuration in issuer found; webhook configuration requires apiKeySecretRef containing deSEC API token")
 	}
@@ -42,12 +42,6 @@ func (s *DeSECDNSProviderSolver) getClient(config *apiextensionsv1.JSON, namespa
 	solverConfig := DeSECDNSProviderSolverConfig{}
 	if err := json.Unmarshal(config.Raw, &solverConfig); err != nil {
 		return nil, fmt.Errorf("invalid configuration in issuer found; webhook configuration requires apiKeySecretRef containing deSEC API token")
-	}
-	// Check if the namespace has been provided within the configuration
-	// Otherwise use the namespace from the request
-	if solverConfig.APIKeySecretRefNamespace != "" {
-		fmt.Sprintf("k8s secret namespace has been overwritten in webhook configuration apiKeySecretRefNamespace from %s to %s", namespace, solverConfig.APIKeySecretRefNamespace)
-		namespace = solverConfig.APIKeySecretRefNamespace
 	}
 	// Check if the k8s client has been initialized
 	// This should never happen as cert-manager calls s.Initialize() which assigns the k8s client
