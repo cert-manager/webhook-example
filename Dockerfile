@@ -4,8 +4,7 @@ RUN apk add --no-cache git
 
 WORKDIR /workspace
 
-COPY go.mod .
-COPY go.sum .
+COPY . .
 
 RUN go mod download
 

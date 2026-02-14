@@ -24,8 +24,6 @@ type DeSECDNSProviderSolverConfig struct {
 
 // A DNS-01 challenge solver for the DeSEC DNS Provider
 type DeSECDNSProviderSolver struct {
-	// Client to communicate with the deSEC API
-	client *desec.Client
 	// Client to communicate with the kubernetes API
 	k8s *kubernetes.Clientset
 }
@@ -35,43 +33,41 @@ func (s *DeSECDNSProviderSolver) Name() string {
 	return "deSEC"
 }
 
-// Returns the initialized API client or creates a new client if not initialized
+// Initializes a new client
 func (s *DeSECDNSProviderSolver) getClient(config *apiextensionsv1.JSON, namespace string) (*desec.Client, error) {
-	// Check if client is not initialized
-	if s.client == nil {
-		if config == nil {
-			return nil, fmt.Errorf("missing configuration in issuer found; webhook configuration requires apiKeySecretRef containing deSEC API token")
-		}
-		// Initialize the configuration object and unmarhal json
-		solverConfig := DeSECDNSProviderSolverConfig{}
-		if err := json.Unmarshal(config.Raw, &solverConfig); err != nil {
-			return nil, fmt.Errorf("invalid configuration in issuer found; webhook configuration requires apiKeySecretRef containing deSEC API token")
-		}
-		// Check if the namespace has been provided within the configuration
-		// Otherwise use the namespace from the request
-		if solverConfig.APIKeySecretRefNamespace != "" {
-			fmt.Sprintf("k8s secret namespace has been overwitten in webhook configuration apiKeySecretRefNamespace from %s to %s", namespace, solverConfig.APIKeySecretRefNamespace)
-			namespace = solverConfig.APIKeySecretRefNamespace
-		}
-		// Check if the k8s client has been initialized
-		// This should never happen as cert-manager calls s.Initialize() which assigns the k8s client
-		if s.k8s == nil {
-			return nil, fmt.Errorf("k8s client has not been initialized by cert-manager; this should never happen")
-		}
-		// Read the secret from k8s
-		secret, err := s.k8s.CoreV1().Secrets(namespace).Get(context.Background(), solverConfig.APIKeySecretRef.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("k8s secret %s not found in namespace %s", solverConfig.APIKeySecretRef.Name, namespace)
-		}
-		token, ok := secret.Data[solverConfig.APIKeySecretRef.Key]
-		if !ok {
-			return nil, fmt.Errorf("k8s secret key %s not found in secret %s in namespace %s", solverConfig.APIKeySecretRef.Key, solverConfig.APIKeySecretRef.Name, namespace)
-		}
-		// Finally assign the client
-		s.client = desec.New(string(token), desec.NewDefaultClientOptions())
+	if config == nil {
+		return nil, fmt.Errorf("missing configuration in issuer found; webhook configuration requires apiKeySecretRef containing deSEC API token")
 	}
+	// Initialize the configuration object and unmarshal json
+	solverConfig := DeSECDNSProviderSolverConfig{}
+	if err := json.Unmarshal(config.Raw, &solverConfig); err != nil {
+		return nil, fmt.Errorf("invalid configuration in issuer found; webhook configuration requires apiKeySecretRef containing deSEC API token")
+	}
+	// Check if the namespace has been provided within the configuration
+	// Otherwise use the namespace from the request
+	if solverConfig.APIKeySecretRefNamespace != "" {
+		fmt.Sprintf("k8s secret namespace has been overwritten in webhook configuration apiKeySecretRefNamespace from %s to %s", namespace, solverConfig.APIKeySecretRefNamespace)
+		namespace = solverConfig.APIKeySecretRefNamespace
+	}
+	// Check if the k8s client has been initialized
+	// This should never happen as cert-manager calls s.Initialize() which assigns the k8s client
+	if s.k8s == nil {
+		return nil, fmt.Errorf("k8s client has not been initialized by cert-manager; this should never happen")
+	}
+	// Read the secret from k8s
+	secret, err := s.k8s.CoreV1().Secrets(namespace).Get(context.Background(), solverConfig.APIKeySecretRef.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("k8s secret %s not found in namespace %s", solverConfig.APIKeySecretRef.Name, namespace)
+	}
+	token, ok := secret.Data[solverConfig.APIKeySecretRef.Key]
+	if !ok {
+		return nil, fmt.Errorf("k8s secret key %s not found in secret %s in namespace %s", solverConfig.APIKeySecretRef.Key, solverConfig.APIKeySecretRef.Name, namespace)
+	}
+	// Finally assign the client
+	client := desec.New(string(token), desec.NewDefaultClientOptions())
+
 	// Return the client (reuse if initialized)
-	return s.client, nil
+	return client, nil
 }
 
 // Present presents the TXT DNS entry after completion of the ACME DNS-01 challenge
