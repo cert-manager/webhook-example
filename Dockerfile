@@ -1,7 +1,5 @@
 FROM golang:1.25.7 AS build
 
-RUN apk add --no-cache git
-
 WORKDIR /workspace
 
 COPY . .
@@ -15,5 +13,7 @@ FROM alpine:latest
 RUN apk add --no-cache ca-certificates
 
 COPY --from=build /workspace/webhook /usr/local/bin/webhook
+
+RUN chmod +x /usr/local/bin/webhook
 
 ENTRYPOINT ["webhook"]
