@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	acme "github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	"github.com/cert-manager/cert-manager/pkg/issuer/acme/dns/util"
 	"github.com/nrdcg/desec"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,6 +73,29 @@ func (s *DeSECDNSProviderSolver) Present(req *acme.ChallengeRequest) error {
 	if err != nil {
 		return err
 	}
+	zone := util.UnFqdn(req.ResolvedZone)
+	fqdn := util.UnFqdn(req.ResolvedFQDN)
+	// Cut the zone from the fqdn to retrieve the subdomain
+	subdomain := util.UnFqdn(strings.Replace(fqdn, zone, "", 0))
+	// Check if zone is managed in deSEC
+	domain, err := apiClient.Domains.Get(context.Background(), zone)
+	if err != nil {
+		return fmt.Errorf("domain %s could not be retrieved from deSEC API: %w", zone, err)
+	}
+	// Create the TXT record to be created
+	recordSet := desec.RRSet{
+		Domain:  domain.Name,
+		SubName: subdomain,
+		Records: []string{fmt.Sprintf("\"%s\"", req.Key)},
+		Type:    "TXT",
+		TTL:     3600,
+	}
+	// Create the TXT record
+	_, err = apiClient.Records.Create(context.Background(), recordSet)
+	if err != nil {
+		return fmt.Errorf("DNS record %s creation failed: %w", fqdn, err)
+	}
+	// Return no error
 	return nil
 }
 
@@ -81,6 +106,21 @@ func (s *DeSECDNSProviderSolver) CleanUp(req *acme.ChallengeRequest) error {
 	if err != nil {
 		return err
 	}
+	zone := util.UnFqdn(req.ResolvedZone)
+	fqdn := util.UnFqdn(req.ResolvedFQDN)
+	// Cut the zone from the fqdn to retrieve the subdomain
+	subdomain := util.UnFqdn(strings.Replace(fqdn, zone, "", 0))
+	// Check if zone is managed in deSEC
+	domain, err := apiClient.Domains.Get(context.Background(), zone)
+	if err != nil {
+		return fmt.Errorf("domain %s could not be retrieved from deSEC API: %w", zone, err)
+	}
+	// Delete the TXT record
+	err = apiClient.Records.Delete(context.Background(), domain.Name, subdomain, "TXT")
+	if err != nil {
+		return fmt.Errorf("DNS record %s deletion failed: %w", fqdn, err)
+	}
+	// Return no error
 	return nil
 }
 
@@ -93,6 +133,6 @@ func (s *DeSECDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopC
 	}
 	// Assign the k8s client to the solver
 	s.k8s = k8s
-
+	// Return no error
 	return nil
 }
