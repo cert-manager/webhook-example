@@ -1,0 +1,60 @@
+name: Publish Helm chart to GHCR
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  CHART_DIR: ./deploy/cert-manager-desec-webhook
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+      
+      - name: Install yq
+        uses: mikefarah/yq@v4
+      
+      - name: Compute chart version
+        id: ver
+        run: |
+          # Version strategy for "push to main":
+          # Use Chart.yaml version + short SHA to avoid collisions.
+          BASE_VERSION="$(yq -r '.version' "${CHART_DIR}/Chart.yaml")"
+          SHORT_SHA="$(git rev-parse --short=8 HEAD)"
+          VERSION="${BASE_VERSION}-${SHORT_SHA}"
+          echo "chart_dir=${CHART_DIR}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+      
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username "${{ github.actor }}" \
+            --password-stdin
+      
+      - name: Lint chart
+        run: helm lint "${{ steps.ver.outputs.chart_dir }}"
+      
+      - name: Package chart
+        run: |
+          helm package "${{ steps.ver.outputs.chart_dir }}" \
+            --version "${{ steps.ver.outputs.version }}" \
+            --destination ./dist
+      
+      - name: Push chart to GHCR (OCI)
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          helm push ./dist/*.tgz oci://ghcr.io/${OWNER}/helm
