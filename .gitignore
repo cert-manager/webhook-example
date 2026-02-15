@@ -12,8 +12,11 @@
 *.out
 
 # Ignore the built binary
-cert-manager-webhook-example
+cert-manager-desec-webhook
 
 # Make artifacts
 _out
 _test
+
+# Ensure the test secrets are not accidentally pushed
+testdata/secret.yaml
