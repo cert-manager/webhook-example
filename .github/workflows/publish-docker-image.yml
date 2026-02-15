@@ -1,9 +1,13 @@
-name: 'Build docker image'
+name: Publish Docker Image to GHCR
+
+permissions:
+  contents: read
+  packages: write
 
 on:
   push:
     branches:
-    - main
+      - main
 
 jobs:
   build:
