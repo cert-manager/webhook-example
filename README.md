@@ -9,10 +9,10 @@
 This solver can be used with [desec.io](https://desec.io) DNS API. The documentation of the API can be found [here](https://desec.readthedocs.io/en/latest/)
 
 ## Requirements
-- [go](https://golang.org) => 1.26.0
+- [go](https://golang.org) >= 1.26.0
 - [helm](https://helm.sh/) >= v3.0.0
-- [kuberentes](https://kubernetes.io/) => 1.25.0
-- [cert-manager](https://cert-manager.io/) => 1.19.0
+- [kubernetes](https://kubernetes.io/) >= 1.25.0
+- [cert-manager](https://cert-manager.io/) >= 1.19.0
 
 ## Installation
 
@@ -75,7 +75,7 @@ spec:
                 key: token
                 name: desec-io-token
             groupName: acme.pr0ton11.github.com
-            solverName: desec
+            solverName: deSEC
 ```
 
 ## Create a manual certificate
@@ -150,7 +150,7 @@ data:
 type: Opaque
 ```
 
-Define a **TEST_ZONE_NAME** matching to your authenticaton creditials.
+Define a **TEST_ZONE_NAME** matching to your authentication credentials.
 
 ```bash
 $ TEST_ZONE_NAME=example.com. make test

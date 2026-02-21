@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	acmetest "github.com/cert-manager/cert-manager/test/acme"
@@ -21,9 +22,13 @@ func TestRunsSuite(t *testing.T) {
 	//	acmetest.SetManifestPath("testdata/my-custom-solver"),
 	//	acmetest.SetBinariesPath("_test/kubebuilder/bin"),
 	//)
-	solver := &solver.DeSECDNSProviderSolver{}
-	fixture := acmetest.NewFixture(solver,
-		acmetest.SetResolvedZone("example.com."),
+	desecSolver := &solver.DeSECDNSProviderSolver{}
+	zoneName := os.Getenv("TEST_ZONE_NAME")
+	if zoneName == "" {
+		t.Skip("TEST_ZONE_NAME not set")
+	}
+	fixture := acmetest.NewFixture(desecSolver,
+		acmetest.SetResolvedZone(zoneName),
 		acmetest.SetManifestPath("testdata/desec"),
 		acmetest.SetDNSServer("127.0.0.1:59351"),
 		acmetest.SetUseAuthoritative(false),
