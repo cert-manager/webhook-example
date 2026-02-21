@@ -7,7 +7,7 @@ certManager:
 image:
   repository: ghcr.io/pr0ton11/cert-manager-desec-webhook
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 nameOverride: ""
 fullnameOverride: ""
