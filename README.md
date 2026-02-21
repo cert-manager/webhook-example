@@ -30,7 +30,7 @@ helm install \
   -n cert-manager \
   --version <release without leading "v"> \
   desec-webhook \
-  oci://ghcr.io/pr0ton11/charts/cert-manager-desec-webhook
+  oci://ghcr.io/pr0ton11/helm/cert-manager-desec-webhook
 ```
 
 ## Uninstallation
