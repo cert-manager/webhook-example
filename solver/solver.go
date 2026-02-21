@@ -31,7 +31,7 @@ type DeSECDNSProviderSolver struct {
 
 // Returns the name of the DNS solver
 func (s *DeSECDNSProviderSolver) Name() string {
-	return "deSEC"
+	return "desec"
 }
 
 // Initializes a new client

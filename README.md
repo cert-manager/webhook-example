@@ -75,7 +75,7 @@ spec:
                 key: token
                 name: desec-io-token
             groupName: acme.pr0ton11.github.com
-            solverName: deSEC
+            solverName: desec
 ```
 
 ## Create a manual certificate
