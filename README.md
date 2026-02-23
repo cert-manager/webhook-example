@@ -4,15 +4,24 @@
   <img src="https://raw.githubusercontent.com/cert-manager/cert-manager/d53c0b9270f8cd90d908460d69502694e1838f5f/logo/logo-small.png" height="256" width="256" alt="cert-manager project logo" />
 </p>
 
-# Independently maintained ACME webhook for desec.io DNS API
+[![Publish Docker Image to GHCR](https://github.com/pr0ton11/cert-manager-desec-webhook/actions/workflows/publish-docker-image.yml/badge.svg?branch=main)](https://github.com/pr0ton11/cert-manager-desec-webhook/actions/workflows/publish-docker-image.yml)
+[![Publish Helm chart to GHCR](https://github.com/pr0ton11/cert-manager-desec-webhook/actions/workflows/publish-helm-chart.yml/badge.svg?branch=main)](https://github.com/pr0ton11/cert-manager-desec-webhook/actions/workflows/publish-helm-chart.yml)
+[![Helm Chart](https://img.shields.io/badge/dynamic/yaml?url=https://raw.githubusercontent.com/pr0ton11/cert-manager-desec-webhook/main/deploy/cert-manager-desec-webhook/Chart.yaml&query=%24.version&label=helm%20chart)](https://github.com/pr0ton11/cert-manager-desec-webhook/pkgs/container/helm%2Fcert-manager-desec-webhook)
+[![Architectures](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-007ec6)](https://github.com/pr0ton11/cert-manager-desec-webhook#supported-architectures)
+[![License](https://img.shields.io/github/license/pr0ton11/cert-manager-desec-webhook)](https://github.com/pr0ton11/cert-manager-desec-webhook/blob/main/LICENSE)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/pr0ton11/cert-manager-desec-webhook)](https://github.com/pr0ton11/cert-manager-desec-webhook/blob/main/go.mod)
 
-This solver can be used with [desec.io](https://desec.io) DNS API. The documentation of the API can be found [here](https://desec.readthedocs.io/en/latest/)
+Independently maintained ACME webhook for the [desec.io](https://desec.io) DNS API. API docs: https://desec.readthedocs.io/en/latest/
 
 ## Requirements
 - [go](https://golang.org) >= 1.26.0
 - [helm](https://helm.sh/) >= v3.0.0
 - [kubernetes](https://kubernetes.io/) >= 1.25.0
 - [cert-manager](https://cert-manager.io/) >= 1.19.0
+
+## Supported architectures
+- linux/amd64
+- linux/arm64
 
 ## Installation
 
@@ -21,7 +30,7 @@ This solver can be used with [desec.io](https://desec.io) DNS API. The documenta
 helm install \
   -n cert-manager \
   desec-webhook \
-  charts/cert-manager-desec-webhook
+  deploy/cert-manager-desec-webhook
 ```
 
 ### Using public helm chart
@@ -32,8 +41,6 @@ helm install \
   desec-webhook \
   oci://ghcr.io/pr0ton11/helm/cert-manager-desec-webhook
 ```
-
-## Uninstallation
 
 ## Creating an issuer
 
@@ -131,9 +138,7 @@ spec:
 
 ```
 
-### Creating your own repository
-
-### Running the test suite
+## Running the test suite
 
 All DNS providers **must** run the DNS01 provider conformance testing suite,
 else they will have undetermined behaviour when used with cert-manager.
@@ -155,3 +160,7 @@ Define a **TEST_ZONE_NAME** matching to your authentication credentials.
 ```bash
 $ TEST_ZONE_NAME=example.com. make test
 ```
+
+## Stargazers over time
+
+[![Star History Chart](https://api.star-history.com/svg?repos=pr0ton11/cert-manager-desec-webhook&type=Date)](https://star-history.com/#pr0ton11/cert-manager-desec-webhook&Date)
