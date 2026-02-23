@@ -12,6 +12,4 @@ FROM gcr.io/distroless/static-debian13
 
 COPY --from=build /workspace/webhook /usr/local/bin/webhook
 
-RUN chmod +x /usr/local/bin/webhook
-
 ENTRYPOINT ["webhook"]
