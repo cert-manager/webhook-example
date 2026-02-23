@@ -6,11 +6,9 @@ COPY . .
 
 RUN go mod download
 
-RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+RUN CGO_ENABLED=0 go build -o webhook .
 
-FROM alpine:latest
-
-RUN apk add --no-cache ca-certificates
+FROM gcr.io/distroless/static-debian13
 
 COPY --from=build /workspace/webhook /usr/local/bin/webhook
 
