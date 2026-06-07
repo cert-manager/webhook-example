@@ -59,7 +59,7 @@ func TestExampleSolver_Present_Cleanup(t *testing.T) {
 		msg.Id = dns.Id()
 		msg.RecursionDesired = true
 		msg.Question = make([]dns.Question, 1)
-		msg.Question[0] = dns.Question{dns.Fqdn(test.hostname), dns.TypeTXT, dns.ClassINET}
+		msg.Question[0] = dns.Question{Name: dns.Fqdn(test.hostname), Qtype: dns.TypeTXT, Qclass: dns.ClassINET}
 		in, err := dns.Exchange(msg, "127.0.0.1:"+port.String())
 
 		assert.NoError(t, err, "Presented record %s not resolvable", test.hostname)
@@ -84,7 +84,7 @@ func TestExampleSolver_Present_Cleanup(t *testing.T) {
 		msg.Id = dns.Id()
 		msg.RecursionDesired = true
 		msg.Question = make([]dns.Question, 1)
-		msg.Question[0] = dns.Question{dns.Fqdn(test.hostname), dns.TypeTXT, dns.ClassINET}
+		msg.Question[0] = dns.Question{Name: dns.Fqdn(test.hostname), Qtype: dns.TypeTXT, Qclass: dns.ClassINET}
 		in, err := dns.Exchange(msg, "127.0.0.1:"+port.String())
 
 		assert.NoError(t, err, "Presented record %s not resolvable", test.hostname)

@@ -2,6 +2,7 @@ package example
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/miekg/dns"
 )
@@ -18,7 +19,11 @@ func (e *exampleSolver) handleDNSRequest(w dns.ResponseWriter, req *dns.Msg) {
 			}
 		}
 	}
-	w.WriteMsg(msg)
+	if err := w.WriteMsg(msg); err != nil {
+		slog.Error("failed to write DNS response",
+			"error", err,
+		)
+	}
 }
 
 func (e *exampleSolver) addDNSAnswer(q dns.Question, msg *dns.Msg, req *dns.Msg) error {
