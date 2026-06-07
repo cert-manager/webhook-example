@@ -1,16 +1,11 @@
 package main
 
 import (
-	"os"
 	"testing"
 
 	acmetest "github.com/cert-manager/cert-manager/test/acme"
 
 	"github.com/cert-manager/webhook-example/example"
-)
-
-var (
-	zone = os.Getenv("TEST_ZONE_NAME")
 )
 
 func TestRunsSuite(t *testing.T) {
