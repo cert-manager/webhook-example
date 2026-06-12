@@ -6,8 +6,8 @@ require (
 	github.com/cert-manager/cert-manager v1.21.0-alpha.1.0.20260607200602-e213c0a11e63
 	github.com/miekg/dns v1.1.72
 	github.com/stretchr/testify v1.11.1
-	k8s.io/apiextensions-apiserver v0.36.1
-	k8s.io/client-go v0.36.1
+	k8s.io/apiextensions-apiserver v0.36.2
+	k8s.io/client-go v0.36.2
 )
 
 require (
@@ -95,14 +95,14 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.36.1 // indirect
-	k8s.io/apimachinery v0.36.1 // indirect
-	k8s.io/apiserver v0.36.1 // indirect
-	k8s.io/component-base v0.36.1 // indirect
+	k8s.io/api v0.36.2 // indirect
+	k8s.io/apimachinery v0.36.2 // indirect
+	k8s.io/apiserver v0.36.2 // indirect
+	k8s.io/component-base v0.36.2 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
-	k8s.io/kms v0.36.1 // indirect
+	k8s.io/kms v0.36.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a // indirect
-	k8s.io/streaming v0.36.1 // indirect
+	k8s.io/streaming v0.36.2 // indirect
 	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0 // indirect
 	sigs.k8s.io/controller-runtime v0.24.1 // indirect
