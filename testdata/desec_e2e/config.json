@@ -1,0 +1,6 @@
+{
+    "apiTokenSecretRef": {
+        "name": "desec-token",
+        "key": "token"
+    }
+}

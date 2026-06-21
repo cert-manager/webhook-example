@@ -1,0 +1,6 @@
+apiVersion: v2
+name: desec-webhook
+description: cert-manager webhook solver for ACME DNS01 challenge via deSEC
+version: 0.1.0
+
+appVersion: "1.0.0"

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: desec-token
+type: Opaque
+stringData:
+  token: <API-Token>

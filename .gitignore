@@ -4,13 +4,25 @@
 *.dll
 *.so
 *.dylib
-/.idea/
-*.iml
-# Test binary, build with `go test -c`
+
+# Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Code coverage profiles and other test artifacts
 *.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# env file
+.env
 
 # Ignore the built binary
 cert-manager-webhook-example
@@ -19,3 +31,6 @@ cert-manager-webhook-example
 bin
 _out
 _test
+
+# Secret files
+testdata/desec_e2e/desec-token.yaml

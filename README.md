@@ -1,63 +1,73 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/cert-manager/cert-manager/d53c0b9270f8cd90d908460d69502694e1838f5f/logo/logo-small.png" height="256" width="256" alt="cert-manager project logo" />
-</p>
+# deSEC Webhook for cert-manager
 
-# ACME webhook example
+A [cert-manager](https://github.com/cert-manager/cert-manager) webhook to solve an ACME DNS01 challenge using the [deSEC](https://desec.io/) API.
 
-The ACME issuer type supports an optional 'webhook' solver, which can be used
-to implement custom DNS01 challenge solving logic.
+## Prerequisites
 
-This is useful if you need to use cert-manager with a DNS provider that is not
-officially supported in cert-manager core.
+A Kubernetes cluster with cert-manager deployed. If you haven't already installed cert-manager, follow the guide [here](https://cert-manager.io/docs/installation/kubernetes/).
 
-## Why not in core?
+## Deployment
 
-As the project & adoption has grown, there has been an influx of DNS provider
-pull requests to our core codebase. As this number has grown, the test matrix
-has become un-maintainable and so, it's not possible for us to certify that
-providers work to a sufficient level.
-
-By creating this 'interface' between cert-manager and DNS providers, we allow
-users to quickly iterate and test out new integrations, and then packaging
-those up themselves as 'extensions' to cert-manager.
-
-We can also then provide a standardised 'testing framework', or set of
-conformance tests, which allow us to validate that a DNS provider works as
-expected.
-
-## Creating your own webhook
-
-Webhook's themselves are deployed as Kubernetes API services, in order to allow
-administrators to restrict access to webhooks with Kubernetes RBAC.
-
-This is important, as otherwise it'd be possible for anyone with access to your
-webhook to complete ACME challenge validations and obtain certificates.
-
-To make the set up of these webhook's easier, we provide a template repository
-that can be used to get started quickly.
-
-When implementing your webhook, you should set the `groupName` in the
-[values.yml](deploy/example-webhook/values.yaml) of your chart to a domain name that 
-you - as the webhook-author - own. It should not need to be adjusted by the users of
-your chart.
-
-### Creating your own repository
-
-### Running the test suite
-
-All DNS providers **must** run the DNS01 provider conformance testing suite,
-else they will have undetermined behaviour when used with cert-manager.
-
-**It is essential that you configure and run the test suite when creating a
-DNS01 webhook.**
-
-An example Go test file has been provided in [main_test.go](https://github.com/cert-manager/webhook-example/blob/master/main_test.go).
-
-You can run the test suite with:
+### Using Helm
 
 ```bash
-$ TEST_ZONE_NAME=example.com. make test
+helm install desec-webhook deploy/desec-webhook \
+  --set groupName=acme.yourdomain.com
 ```
 
-The example file has a number of areas you must fill in and replace with your
-own options in order for tests to pass.
+## Usage
+
+### Deploy an API Token Secret
+
+The deSEC API token needs to be placed into a Kubernetes secret. Use `examples/desec-token.yaml` as a starting point. Place your API token into the manifest.
+
+### Deploy an Issuer
+
+An example `ClusterIssuer` is provided in `examples/letsencrypt-staging-issuer.yaml`. It uses the Let's Encrypt staging server. Replace `groupName` with the value you set during deployment.
+
+### Deploy a Certificate
+
+An example certificate manifest is provided in `examples/test-certificate.yaml`.
+
+## Building
+
+```bash
+make build
+```
+
+## Running the test suite
+
+### Against a mock server
+
+```bash
+# Run the tests
+make test
+```
+
+### Against the deSEC API
+
+```bash
+# Copy the example secret file
+cp examples/desec-token.yaml testdata/desec_e2e/desec-token.yaml
+
+# Replace <API-Token> with your deSEC API token
+editor testdata/desec_e2e/desec-token.yaml
+
+# Set the test zone to run the tests against
+export TEST_ZONE_NAME=example.com.
+
+# Run the E2E tests
+make test-e2e
+```
+
+## AI disclaimer
+
+Copilot was used to do the initial merge of [cert-manager/webhook-example](https://github.com/cert-manager/webhook-example) and [j-be/cert-manager-webhook-desec](https://github.com/j-be/cert-manager-webhook-desec). However, all code was manually reviewed, updated and tested.
+
+## Credits
+
+Main repo structure forked from [cert-manager/webhook-example](https://github.com/cert-manager/webhook-example).
+
+deSEC API client and webhook implementation are based on [j-be/cert-manager-webhook-desec](https://github.com/j-be/cert-manager-webhook-desec).
+
+Both are licensed under Apache-2.0.

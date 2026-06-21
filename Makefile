@@ -10,7 +10,7 @@ OUT := $(shell pwd)/_out
 # FIXME: Required to set the environment variables below. Remove when fixed.
 ENVTEST_K8S_VERSION=1.35.0
 
-HELM_FILES := $(shell find deploy/example-webhook)
+HELM_FILES := $(shell find deploy/desec-webhook)
 
 # FIXME: The environment variables are required by the test helper in cert-manager, but not required to run the tests.
 test: setup-envtest
@@ -18,6 +18,12 @@ test: setup-envtest
 	TEST_ASSET_KUBE_APISERVER=$(LOCALBIN)/k8s/$(ENVTEST_K8S_VERSION)-$(OS)-$(ARCH)/kube-apiserver \
 	TEST_ASSET_KUBECTL=$(LOCALBIN)/k8s/$(ENVTEST_K8S_VERSION)-$(OS)-$(ARCH)/kubectl \
 	$(GO) test -v .
+
+test-e2e: setup-envtest
+	TEST_ASSET_ETCD=$(LOCALBIN)/k8s/$(ENVTEST_K8S_VERSION)-$(OS)-$(ARCH)/etcd \
+	TEST_ASSET_KUBE_APISERVER=$(LOCALBIN)/k8s/$(ENVTEST_K8S_VERSION)-$(OS)-$(ARCH)/kube-apiserver \
+	TEST_ASSET_KUBECTL=$(LOCALBIN)/k8s/$(ENVTEST_K8S_VERSION)-$(OS)-$(ARCH)/kubectl \
+	$(GO) test --tags e2e -v .
 
 .PHONY: clean
 clean:
@@ -29,14 +35,14 @@ build:
 	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
 
 .PHONY: rendered-manifest.yaml
-rendered-manifest.yaml: $(OUT)/rendered-manifest.yaml
-
-$(OUT)/rendered-manifest.yaml: $(HELM_FILES) | $(OUT)
+rendered-manifest.yaml: $(HELM_FILES) | $(OUT)
 	helm template \
-	    --name example-webhook \
-            --set image.repository=$(IMAGE_NAME) \
-            --set image.tag=$(IMAGE_TAG) \
-            deploy/example-webhook > $@
+		--set image.repository=$(IMAGE_NAME) \
+		--set image.tag=$(IMAGE_TAG) \
+		deploy/desec-webhook > $(OUT)/rendered-manifest.yaml
+
+$(OUT):
+	mkdir -p "$(OUT)"
 
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
