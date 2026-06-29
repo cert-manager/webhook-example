@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cert-manager/cert-manager/test/acme/dns"
+	acmetest "github.com/cert-manager/cert-manager/test/acme"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,17 +21,17 @@ func TestRunsSuite(t *testing.T) {
 	pollTime, _ := time.ParseDuration("10s")
 	timeOut, _ := time.ParseDuration("5m")
 
-	fixture := dns.NewFixture(&edgecenterDNSProviderSolver{},
-		dns.SetResolvedZone(zone),
-		dns.SetAllowAmbientCredentials(false),
-		dns.SetManifestPath("testdata/ec"),
+	fixture := acmetest.NewFixture(&edgecenterDNSProviderSolver{},
+		acmetest.SetResolvedZone(zone),
+		acmetest.SetAllowAmbientCredentials(false),
+		acmetest.SetManifestPath("testdata/ec"),
 
 		// Disable the extended test to create several records for the same Record DNS Name
-		dns.SetStrict(false),
+		acmetest.SetStrict(false),
 		// Increase the poll interval to 10s
-		dns.SetPollInterval(pollTime),
+		acmetest.SetPollInterval(pollTime),
 		// Increase the limit from 2 min to 5 min
-		dns.SetPropagationLimit(timeOut),
+		acmetest.SetPropagationLimit(timeOut),
 	)
 
 	fixture.RunConformance(t)

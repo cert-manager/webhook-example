@@ -7,7 +7,7 @@ IMAGE_TAG := "latest"
 
 OUT := $(shell pwd)/_out
 
-KUBE_VERSION=1.25.0
+KUBE_VERSION=1.32.0
 
 $(shell mkdir -p "$(OUT)")
 clean:
