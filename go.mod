@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/cert-manager/cert-manager v1.21.1
-	github.com/miekg/dns v1.1.72
+	github.com/miekg/dns v1.1.73
 	github.com/stretchr/testify v1.12.0
 	k8s.io/apiextensions-apiserver v0.36.3
 	k8s.io/client-go v0.36.3
