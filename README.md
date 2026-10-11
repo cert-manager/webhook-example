@@ -118,6 +118,31 @@ spec:
           solverName: external-dns
 ```
 
+The solver takes an optional config:
+
+```yaml
+        webhook:
+          groupName: cert-manager-webhook.lion7.dev
+          solverName: external-dns
+          config:
+            ttl: 60                # TTL of the challenge record in seconds, 60 when not set
+            providerSpecific: []   # copied to the endpoint's providerSpecific
+```
+
+### How a challenge is presented
+
+The webhook creates one `DNSEndpoint` object per challenge record, named after the domain and a
+hash of the record name, in the namespace of the Issuer (or the cluster resource namespace for a
+ClusterIssuer). A domain and its wildcard are validated on the same `_acme-challenge` record, so
+their keys become two targets of the same TXT endpoint. Cleaning up a challenge removes its key,
+and the object once no key is left.
+
+The endpoint has no set identifier. Most DNS providers cannot store one, and ExternalDNS then never
+matches the endpoint with the record it created for it: it creates the same record on every sync.
+
+Run ExternalDNS with `--policy=sync` to have the challenge record removed after validation. With
+`--policy=upsert-only` the last challenge value of every record stays behind.
+
 ## Running the test suite
 
 All DNS providers **must** run the DNS01 provider conformance testing suite,
@@ -131,7 +156,9 @@ A test file has been provided in [main_test.go](main_test.go).
 You can run the test suite with:
 
 ```bash
-make test
+go test ./...
 ```
+
+See [TESTING.md](TESTING.md) for the test binaries it needs.
 
 The test suite includes a mock DNS server with external-dns controller simulation to provide comprehensive testing without requiring external DNS provider credentials.

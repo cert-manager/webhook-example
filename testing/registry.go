@@ -25,7 +25,7 @@ type Registry struct {
 func NewTestRegistry(t *testing.T, addr string, domains ...string) *Registry {
 	domainFilter := endpoint.NewDomainFilter(domains)
 	registry := &Registry{
-		domains: &domainFilter,
+		domains: domainFilter,
 		records: make(map[endpoint.EndpointKey]*endpoint.Endpoint),
 	}
 
