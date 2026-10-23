@@ -3,7 +3,7 @@ module github.com/cert-manager/webhook-example
 go 1.26.0
 
 require (
-	github.com/cert-manager/cert-manager v1.21.2
+	github.com/cert-manager/cert-manager v1.21.3
 	github.com/miekg/dns v1.1.73
 	github.com/stretchr/testify v1.12.1
 	k8s.io/apiextensions-apiserver v0.37.1
