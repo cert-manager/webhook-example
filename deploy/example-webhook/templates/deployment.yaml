@@ -21,6 +21,10 @@ spec:
         release: {{ .Release.Name }}
     spec:
       serviceAccountName: {{ include "example-webhook.fullname" . }}
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml . | indent 8 }}
+    {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
