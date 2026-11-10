@@ -1,0 +1,39 @@
+name: Lint
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+
+      - name: Run go vet
+        run: go vet ./...
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: yokawasa/action-setup-kube-tools@b16d49b2c459d33cf9d4c300a220ef0bcdbc730a # v0.14.0
+        with:
+          setup-tools: |
+            helm
+          helm: v3.19.2
+
+      - name: Lint Helm chart
+        run: helm lint deploy/cert-manager-webhook-123domain
+
+      - name: Render Helm chart
+        run: helm template cert-manager-webhook-123domain deploy/cert-manager-webhook-123domain

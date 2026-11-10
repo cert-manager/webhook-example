@@ -1,0 +1,124 @@
+# -- Unique group name used by cert-manager to address this webhook. Use the same
+# value in every Issuer or ClusterIssuer webhook solver configuration.
+groupName: acme.github.ru13en.123domain.eu
+
+# -- Additional environment variables for the webhook container.
+env: {}
+
+certManager:
+  # -- Namespace containing the cert-manager deployment.
+  namespace: cert-manager
+  # -- Service account used by cert-manager.
+  serviceAccountName: cert-manager
+
+# -- Image pull secrets for private registries.
+imagePullSecrets: []
+
+image:
+  repository: ghcr.io/ru13en/cert-manager-webhook-123domain
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# -- Override the chart name.
+nameOverride: ""
+# -- Override the full release name.
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 443
+
+# -- Grant the webhook service account get access to this API credential Secret.
+# Set namespace when the Secret is not in the chart release namespace.
+credentialsSecret:
+  name: ns123domain-api-secret
+  namespace: ""
+
+# -- Number of webhook replicas.
+replicaCount: 1
+
+# -- Kubernetes deployment strategy.
+strategy:
+  type: RollingUpdate
+
+# -- Additional labels on the Deployment.
+labels: {}
+
+# -- Additional annotations on the Deployment.
+annotations: {}
+
+# -- Additional labels on the webhook pods.
+podLabels: {}
+
+# -- Additional annotations on the webhook pods.
+podAnnotations: {}
+
+# -- Kubernetes startup probe. Set to null to disable.
+startupProbe:
+  httpGet:
+    scheme: HTTPS
+    path: /healthz
+    port: https
+
+# -- Kubernetes liveness probe. Set to null to disable.
+livenessProbe:
+  httpGet:
+    scheme: HTTPS
+    path: /healthz
+    port: https
+
+# -- Kubernetes readiness probe. Set to null to disable.
+readinessProbe:
+  httpGet:
+    scheme: HTTPS
+    path: /healthz
+    port: https
+
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# -- Pod-level security context, following the Kubernetes Restricted profile.
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container-level security context, following the Kubernetes Restricted profile.
+containerSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# -- Extra volumes mounted into the webhook pod.
+extraVolumes: []
+
+# -- Extra volume mounts on the webhook container.
+extraVolumeMounts: []
+
+# -- Priority class for webhook pods.
+priorityClassName: ""
+
+metrics:
+  serviceMonitor:
+    # -- Create a Prometheus Operator ServiceMonitor (requires its CRD).
+    enabled: false
+
+podDisruptionBudget:
+  # -- Create a PodDisruptionBudget for the webhook.
+  enabled: false
+  minAvailable: null
+  maxUnavailable: null
+  # unhealthyPodEvictionPolicy: IfHealthyBudget

@@ -1,0 +1,5 @@
+apiVersion: v1
+appVersion: "0.1.0"
+description: cert-manager ACME DNS webhook for 123domain.eu
+name: cert-manager-webhook-123domain
+version: 0.1.0

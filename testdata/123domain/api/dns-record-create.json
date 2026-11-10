@@ -1,0 +1,11 @@
+{
+  "name": "_acme-challenge",
+  "type": "TXT",
+  "ttl": 60,
+  "attributes": [
+    {
+      "key": "text",
+      "value": "challenge-value"
+    }
+  ]
+}
