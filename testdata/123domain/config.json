@@ -1,0 +1,5 @@
+{
+  "apiSecretKeyRef": {
+    "name": "ns123domain-api-secret"
+  }
+}

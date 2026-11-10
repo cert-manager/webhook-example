@@ -1,0 +1,41 @@
+[
+  {
+    "id": "xTbfgvzBXfIqBCQdzspJaA",
+    "name": "www",
+    "type": "A",
+    "ttl": 86400,
+    "comment": "Our webserver",
+    "disabled": true,
+    "userdata": "12345",
+    "attributes": [
+      {
+        "key": "ip",
+        "value": "127.0.0.1"
+      }
+    ]
+  },
+  {
+    "id": "sQ7LCJIXSTWkBEsB",
+    "name": "_acme-challenge",
+    "type": "TXT",
+    "ttl": 86400,
+    "attributes": [
+      {
+        "key": "text",
+        "value": "challenge-value"
+      }
+    ]
+  },
+  {
+    "id": "another-challenge",
+    "name": "_acme-challenge",
+    "type": "TXT",
+    "ttl": 86400,
+    "attributes": [
+      {
+        "key": "text",
+        "value": "another-value"
+      }
+    ]
+  }
+]

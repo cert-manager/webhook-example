@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+
+      - name: Build release binaries
+        run: |
+          mkdir -p dist
+          for arch in amd64 arm64; do
+            binary="cert-manager-webhook-123domain-${GITHUB_REF_NAME}-linux-${arch}"
+            CGO_ENABLED=0 GOOS=linux GOARCH="$arch" \
+              go build -trimpath -ldflags="-s -w" -o "dist/${binary}" .
+          done
+          cp LICENSE dist/
+          (cd dist && sha256sum cert-manager-webhook-123domain-* > checksums.txt)
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes
+
+  github-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Helm
+        uses: yokawasa/action-setup-kube-tools@b16d49b2c459d33cf9d4c300a220ef0bcdbc730a # v0.14.0
+        with:
+          setup-tools: |
+            helm
+          helm: v3.19.2
+
+      - name: Log in to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          printf '%s' "$GH_TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Publish container image
+        run: |
+          docker buildx create --name release-builder --use
+          docker buildx build \
+            --platform linux/amd64 \
+            --build-arg GO_VERSION=1.26.0 \
+            --tag "ghcr.io/ru13en/cert-manager-webhook-123domain:${GITHUB_REF_NAME}" \
+            --tag "ghcr.io/ru13en/cert-manager-webhook-123domain:latest" \
+            --push .
+
+      - name: Publish Helm chart
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          helm package deploy/cert-manager-webhook-123domain \
+            --version "$version" \
+            --app-version "$version"
+          helm push "cert-manager-webhook-123domain-${version}.tgz" \
+            oci://ghcr.io/ru13en/charts
