@@ -4,7 +4,7 @@
   "ttl": 60,
   "attributes": [
     {
-      "key": "text",
+      "key": "value",
       "value": "challenge-value"
     }
   ]

@@ -21,7 +21,7 @@
     "ttl": 86400,
     "attributes": [
       {
-        "key": "text",
+        "key": "value",
         "value": "challenge-value"
       }
     ]
@@ -33,7 +33,7 @@
     "ttl": 86400,
     "attributes": [
       {
-        "key": "text",
+        "key": "value",
         "value": "another-value"
       }
     ]

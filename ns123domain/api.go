@@ -53,7 +53,7 @@ func (c *dnsAPIClient) presentTXT(zone, fqdn, value string) error {
 		Type: "TXT",
 		TTL:  60,
 		Attributes: []dnsRecordAttribute{
-			{Key: "text", Value: value},
+			{Key: "value", Value: value},
 		},
 	}
 	if err := c.request(http.MethodPost, domain, "", record, nil); err != nil {
@@ -173,7 +173,7 @@ func isTXTRecord(record dnsRecord, name, value string) bool {
 		return false
 	}
 	for _, attribute := range record.Attributes {
-		if attribute.Key == "text" && attribute.Value == value {
+		if attribute.Key == "value" && attribute.Value == value {
 			return true
 		}
 	}
