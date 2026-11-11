@@ -93,15 +93,19 @@ spec:
 The API key and API secret are sent in the API authorization header. The
 `ResolvedZone` must be a domain managed by the API account. The solver derives
 the API `{toplevel}/{name}` route and relative record name from the resolved
-zone and FQDN, and sends TXT values in the record `text` attribute.
+zone and FQDN, and sends TXT values in the record `value` attribute.
 
 ## Releases
 
-Pushing a `vX.Y.Z` tag runs the release workflow. It publishes Linux `amd64`
-and `arm64` binaries with checksums to a GitHub Release, pushes the container
-image to `ghcr.io/ru13en/cert-manager-webhook-123domain` with the version and
-`latest` tags, and publishes the Helm chart to
-`oci://ghcr.io/ru13en/charts/cert-manager-webhook-123domain`.
+Pushing an `X.Y.Z` tag runs the full release workflow. The container image is
+tagged `X.Y.Z` and `latest`. Linux `amd64` and
+`arm64` binaries with checksums are attached to a GitHub Release, and the Helm
+chart is published to `oci://ghcr.io/ru13en/charts/cert-manager-webhook-123domain`
+with its SemVer version `X.Y.Z`.
+
+Pushing a `helm-X.Y.Z` tag publishes only the Helm chart; the `helm-` prefix
+is stripped before packaging, so the chart version remains the valid SemVer
+`X.Y.Z`.
 
 Install a published chart by specifying its release version:
 

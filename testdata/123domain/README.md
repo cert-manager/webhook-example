@@ -16,5 +16,5 @@ The `api/` directory contains DNS record request and response fixtures. Common
 DNS record field examples (record ID, name, TTL, comment, disabled flag,
 userdata, and `ip` attribute) come from the
 [123domain.eu Swagger specification](https://api.123domain.eu/spec/swagger.json);
-TXT fixture values model the `text` attribute used when publishing ACME
+TXT fixture values model the `value` attribute used when publishing ACME
 challenges.
