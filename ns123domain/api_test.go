@@ -12,6 +12,7 @@ import (
 
 func TestPresentTXTCreatesRecord(t *testing.T) {
 	var calls []string
+	getCalls := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assertAPIRequest(t, r)
 		if got, want := r.URL.Path, "/api/v1/domains/com/example/dns"; got != want {
@@ -21,7 +22,12 @@ func TestPresentTXTCreatesRecord(t *testing.T) {
 
 		switch r.Method {
 		case http.MethodGet:
-			writeAPIFixture(t, w, "dns-records-empty.json")
+			getCalls++
+			if getCalls == 1 {
+				writeAPIFixture(t, w, "dns-records-empty.json")
+			} else {
+				writeAPIFixture(t, w, "dns-records.json")
+			}
 		case http.MethodPost:
 			if got, want := r.Header.Get("Content-Type"), "application/json"; got != want {
 				t.Errorf("Content-Type header = %q, want %q", got, want)
@@ -47,7 +53,7 @@ func TestPresentTXTCreatesRecord(t *testing.T) {
 	if err := client.presentTXT("example.com.", "_acme-challenge.example.com.", "challenge-value"); err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{http.MethodGet, http.MethodPost}; !reflect.DeepEqual(calls, want) {
+	if want := []string{http.MethodGet, http.MethodPost, http.MethodGet}; !reflect.DeepEqual(calls, want) {
 		t.Errorf("methods = %v, want %v", calls, want)
 	}
 }
@@ -69,6 +75,40 @@ func TestPresentTXTIsIdempotent(t *testing.T) {
 	}
 	if calls != 1 {
 		t.Errorf("request count = %d, want 1", calls)
+	}
+}
+
+func TestPresentTXTRejectsUnconfirmedCreation(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			writeAPIFixture(t, w, "dns-records-empty.json")
+		case http.MethodPost:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"name":"_acme-challenge","type":"TXT","ttl":60,"attributes":[{"key":"value","value":"challenge-value"}]}]`))
+		default:
+			t.Errorf("unexpected method %s", r.Method)
+		}
+	}))
+	defer server.Close()
+
+	err := newTestDNSAPIClient(server.URL).presentTXT("example.com.", "_acme-challenge.example.com.", "challenge-value")
+	if err == nil {
+		t.Fatal("expected creation without a returned matching record to fail")
+	}
+}
+
+func TestIsTXTRecordIgnoresDisabledRecords(t *testing.T) {
+	record := dnsRecord{
+		Name:     "_acme-challenge",
+		Type:     "TXT",
+		Disabled: true,
+		Attributes: []dnsRecordAttribute{
+			{Key: "value", Value: "challenge-value"},
+		},
+	}
+	if isTXTRecord(record, "_acme-challenge", "challenge-value") {
+		t.Fatal("disabled TXT record must not count as a presented challenge")
 	}
 }
 

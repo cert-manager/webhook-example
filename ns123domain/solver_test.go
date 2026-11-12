@@ -82,6 +82,7 @@ func TestPresentReadsCredentialsFromReferencedSecret(t *testing.T) {
 		secret.Data[key] = []byte(value)
 	}
 
+	getCalls := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wantAuthorization := "Bearer " + "test-key" + ":" + "test-secret"
 		if got := r.Header.Get("Authorization"); got != wantAuthorization {
@@ -89,9 +90,15 @@ func TestPresentReadsCredentialsFromReferencedSecret(t *testing.T) {
 		}
 		switch r.Method {
 		case http.MethodGet:
-			_, _ = w.Write([]byte(`[]`))
+			getCalls++
+			if getCalls == 1 {
+				_, _ = w.Write([]byte(`[]`))
+			} else {
+				_, _ = w.Write([]byte(`[{"name":"_acme-challenge","type":"TXT","ttl":60,"attributes":[{"key":"value","value":"challenge-value"}]}]`))
+			}
 		case http.MethodPost:
-			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"name":"_acme-challenge","type":"TXT","ttl":60,"attributes":[{"key":"value","value":"challenge-value"}]}]`))
 		default:
 			t.Errorf("unexpected method %s", r.Method)
 		}

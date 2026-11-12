@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -37,13 +38,17 @@ func (c *dnsAPIClient) presentTXT(zone, fqdn, value string) error {
 	if err != nil {
 		return err
 	}
+	slog.Debug("presenting TXT record", "domain", domain.fqdn, "name", recordName)
 
 	records, err := c.listRecords(domain)
 	if err != nil {
 		return err
 	}
+	slog.Debug("DNS API returned records while checking TXT", "count", len(records), "name", recordName)
+	logTXTRecordCandidates("existing", recordName, records)
 	for _, record := range records {
 		if isTXTRecord(record, recordName, value) {
+			slog.Debug("matching enabled TXT record already exists", "domain", domain.fqdn, "name", recordName)
 			return nil
 		}
 	}
@@ -59,7 +64,34 @@ func (c *dnsAPIClient) presentTXT(zone, fqdn, value string) error {
 	if err := c.request(http.MethodPost, domain, "", record, nil); err != nil {
 		return fmt.Errorf("creating TXT record %q: %w", fqdn, err)
 	}
-	return nil
+	slog.Debug("TXT creation request accepted; verifying with DNS API list", "domain", domain.fqdn, "name", recordName)
+	createdRecords, err := c.listRecords(domain)
+	if err != nil {
+		return fmt.Errorf("verifying creation of TXT record %q: %w", fqdn, err)
+	}
+	slog.Debug("DNS API returned records after TXT creation", "count", len(createdRecords), "name", recordName)
+	logTXTRecordCandidates("after-create", recordName, createdRecords)
+	for _, createdRecord := range createdRecords {
+		if isTXTRecord(createdRecord, recordName, value) {
+			slog.Debug("matching enabled TXT record confirmed by follow-up list", "domain", domain.fqdn, "name", recordName)
+			return nil
+		}
+	}
+	slog.Debug("follow-up DNS API list did not contain an enabled matching TXT record", "domain", domain.fqdn, "name", recordName)
+	return fmt.Errorf("DNS API did not return an enabled matching TXT record for %q after creation", fqdn)
+}
+
+func logTXTRecordCandidates(stage, name string, records []dnsRecord) {
+	for _, record := range records {
+		if !strings.EqualFold(record.Name, name) {
+			continue
+		}
+		attributeKeys := make([]string, 0, len(record.Attributes))
+		for _, attribute := range record.Attributes {
+			attributeKeys = append(attributeKeys, attribute.Key)
+		}
+		slog.Debug("DNS record candidate", "stage", stage, "type", record.Type, "name", record.Name, "disabled", record.Disabled, "attributeKeys", attributeKeys)
+	}
 }
 
 func (c *dnsAPIClient) cleanTXT(zone, fqdn, value string) error {
@@ -99,6 +131,7 @@ func (c *dnsAPIClient) request(method string, domain apiDomain, recordID string,
 	if recordID != "" {
 		path += "/" + url.PathEscape(recordID)
 	}
+	slog.Debug("123domain API request", "method", method, "path", path)
 
 	var requestBody io.Reader
 	if body != nil {
@@ -120,9 +153,11 @@ func (c *dnsAPIClient) request(method string, domain apiDomain, recordID string,
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		slog.Debug("123domain API request failed", "method", method, "path", path, "error", err)
 		return fmt.Errorf("sending DNS API request: %w", err)
 	}
 	defer resp.Body.Close()
+	slog.Debug("123domain API response", "method", method, "path", path, "status", resp.Status)
 
 	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
@@ -169,7 +204,7 @@ func recordLocation(zone, fqdn string) (apiDomain, string, error) {
 }
 
 func isTXTRecord(record dnsRecord, name, value string) bool {
-	if !strings.EqualFold(record.Type, "TXT") || !strings.EqualFold(record.Name, name) {
+	if record.Disabled || !strings.EqualFold(record.Type, "TXT") || !strings.EqualFold(record.Name, name) {
 		return false
 	}
 	for _, attribute := range record.Attributes {

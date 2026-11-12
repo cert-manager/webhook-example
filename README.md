@@ -95,6 +95,10 @@ The API key and API secret are sent in the API authorization header. The
 the API `{toplevel}/{name}` route and relative record name from the resolved
 zone and FQDN, and sends TXT values in the record `value` attribute.
 
+Webhook debug logs are disabled by default. Set the Helm chart's `env.LOG_LEVEL`
+value to `debug` to enable them. These debug messages omit challenge values
+and API credentials.
+
 ## Releases
 
 Pushing an `X.Y.Z` tag runs the full release workflow. The container image is
